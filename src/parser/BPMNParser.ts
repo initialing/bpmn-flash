@@ -246,33 +246,25 @@ class BPMNParser {
 		xml: string,
 		flowId: string
 	): string | null {
-		// 支持带或不带命名空间的条件表达式查找
-
-		// 标准格式（带命名空间）
-		const standardRegex = new RegExp(
-			`<(?:bpmn:)?sequenceFlow[^>]*id="${flowId}"[^>]*>[\\s\\S]*?<bpmn:conditionExpression[^>]*>([^<]+)<\\/bpmn:conditionExpression>[\\s\\S]*?<\\/bpmn:sequenceFlow>`
+		// 匹配包含 conditionExpression 的 sequenceFlow 元素
+		const flowRegex = new RegExp(
+			`<(?:bpmn:)?sequenceFlow\\s+[^>]*id="${flowId}"[^>]*>([\\s\\S]*?)<\\/(?:bpmn:)?sequenceFlow>`,
+			'i'
 		);
-		let match = xml.match(standardRegex);
-		if (match) {
-			return match[1].trim();
+		const flowMatch = xml.match(flowRegex);
+		
+		if (!flowMatch) {
+			return null;
 		}
 
-		// 带xsi:type的格式
-		const xsiRegex = new RegExp(
-			`<(?:bpmn:)?sequenceFlow[^>]*id="${flowId}"[^>]*>[\\s\\S]*?<bpmn:conditionExpression[^>]*xsi:type="[^"]*"[^>]*>([^<]+)<\\/bpmn:conditionExpression>[\\s\\S]*?<\\/bpmn:sequenceFlow>`
-		);
-		match = xml.match(xsiRegex);
-		if (match) {
-			return match[1].trim();
-		}
+		const flowContent = flowMatch[1];
 
-		// 不带命名空间的条件表达式格式
-		const noNsRegex = new RegExp(
-			`<(?:bpmn:)?sequenceFlow[^>]*id="${flowId}"[^>]*>[\\s\\S]*?<conditionExpression[^>]*>([^<]+)<\\/conditionExpression>[\\s\\S]*?<\\/bpmn:sequenceFlow>`
-		);
-		match = xml.match(noNsRegex);
-		if (match) {
-			return match[1].trim();
+		// 从 flow 内容中提取 conditionExpression
+		const conditionRegex = /<(?:bpmn:)?conditionExpression[^>]*>([^<]+)<\/(?:bpmn:)?conditionExpression>/;
+		const conditionMatch = flowContent.match(conditionRegex);
+
+		if (conditionMatch) {
+			return conditionMatch[1].trim();
 		}
 
 		return null;

@@ -1,7 +1,7 @@
 /**
  * @fileoverview Extension Points and Plugin System Types
  * 为未来的钩子函数和插件系统预留的接口和类型定义
- * 
+ *
  * 设计原则：
  * 1. 不改变当前核心逻辑
  * 2. 提供清晰的扩展点
@@ -18,13 +18,13 @@ import { ProcessDefinition } from '../types/index.js';
  * 引擎生命周期钩子类型
  */
 export type EngineHookType =
-	| 'beforeExecute'      // 执行前
-	| 'afterExecute'       // 执行后
-	| 'beforeTransition'   // 状态转换前
-	| 'afterTransition'    // 状态转换后
-	| 'onTaskCreated'      // 任务创建时
-	| 'onTaskCompleted'    // 任务完成时
-	| 'onProcessStarted'   // 流程启动时
+	| 'beforeExecute' // 执行前
+	| 'afterExecute' // 执行后
+	| 'beforeTransition' // 状态转换前
+	| 'afterTransition' // 状态转换后
+	| 'onTaskCreated' // 任务创建时
+	| 'onTaskCompleted' // 任务完成时
+	| 'onProcessStarted' // 流程启动时
 	| 'onProcessCompleted'; // 流程完成时
 
 /**
@@ -88,7 +88,7 @@ export interface PluginRegistry {
 	 * @param hook 钩子函数
 	 */
 	registerHook(hookType: EngineHookType, hook: EngineHook): void;
-	
+
 	/**
 	 * 注销钩子函数
 	 * @param hookType 钩子类型
@@ -145,18 +145,18 @@ export interface WorkflowEngineOptions {
 	 * @default false
 	 */
 	enableHooks?: boolean;
-	
+
 	/**
 	 * 预加载的插件列表
 	 */
 	plugins?: WorkflowPlugin[];
-	
+
 	/**
 	 * 钩子超时时间（毫秒）
 	 * @default 5000
 	 */
 	hookTimeout?: number;
-	
+
 	/**
 	 * 是否在钩子失败时中断执行
 	 * @default false
@@ -207,32 +207,32 @@ export class SimplePluginRegistry implements PluginRegistry {
 
 /**
  * 插件使用示例（未来）
- * 
+ *
  * // 1. 创建插件
  * const loggingPlugin: WorkflowPlugin = {
  *   name: 'logging-plugin',
  *   version: '1.0.0',
  *   description: '记录流程执行日志',
- *   
+ *
  *   install(registry: PluginRegistry) {
  *     // 注册执行前钩子
  *     registry.registerHook('beforeExecute', async (context) => {
  *       console.log(`执行前：流程 ${context.state.id}`);
  *     });
- *     
+ *
  *     // 注册执行后钩子
  *     registry.registerHook('afterExecute', async (context) => {
  *       console.log(`执行后：流程 ${context.state.id}, 结果：${context.result?.success}`);
  *     });
  *   }
  * };
- * 
+ *
  * // 2. 使用插件
  * const engine = new WorkflowEngine({
  *   enableHooks: true,
  *   plugins: [loggingPlugin]
  * });
- * 
+ *
  * // 3. 手动注册钩子
  * engine.registerHook('onTaskCreated', (context) => {
  *   console.log('任务创建:', context.state.items);
@@ -249,5 +249,5 @@ export type {
 	PluginRegistry,
 	Middleware,
 	WorkflowEngineOptions,
-	ExtendedExecutionResult
+	ExtendedExecutionResult,
 };

@@ -1,4 +1,13 @@
 import { ProcessDefinition, Token, Item } from './types/index.js';
+import { evaluateExpression } from './utils/ExpressionEvaluator.js';
+
+// 简单的日志工具
+const logger = {
+	error: (msg: string, ...args: any[]) => console.error('[ERROR]', msg, ...args),
+	warn: (msg: string, ...args: any[]) => console.warn('[WARN]', msg, ...args),
+	info: (msg: string, ...args: any[]) => console.log('[INFO]', msg, ...args),
+	debug: (msg: string, ...args: any[]) => console.log('[DEBUG]', msg, ...args),
+};
 
 class ExecutionInstance {
 	id: string;
@@ -385,16 +394,15 @@ class ExecutionInstance {
 				const values = Object.values(context);
 
 				// 创建函数来评估表达式
-				const func = new Function(...keys, `return (${expression})`);
-				const result = func(...values);
-
+				const result = evaluateExpression(expression, context);
+				return result; // 使用安全评估器
 				return !!result; // 转换为布尔值
 			}
 
 			// 如果不是标准格式，假设它始终为true（向后兼容）
 			return true;
 		} catch (error) {
-			this.logger.error(
+			logger.error(
 				`评估条件表达式出错: ${conditionExpression}`,
 				error
 			);

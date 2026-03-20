@@ -42,7 +42,7 @@ export const gatewayProcessXML = `<?xml version="1.0" encoding="UTF-8"?>
     </bpmn:exclusiveGateway>
     
     <bpmn:sequenceFlow id="flow2" sourceRef="gateway" targetRef="approvedTask">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">\${data.approved === true}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">\${approved === true}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="defaultFlow" sourceRef="gateway" targetRef="rejectedTask" />
     
