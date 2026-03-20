@@ -16,8 +16,9 @@
 	"scripts": {
 		"build": "rolldown -c rolldown.config.ts",
 		"dev": "rolldown -c rolldown.config.ts --watch",
-		"test": "jest",
-		"test:watch": "jest --watch",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
 		"lint": "eslint src/**/*.ts",
 		"lint:fix": "eslint src/**/*.ts --fix",
 		"format": "prettier --write src/**/*.ts",
@@ -38,20 +39,23 @@
 	"devDependencies": {
 		"@eslint/js": "^9.10.0",
 		"@rollup/plugin-typescript": "^11.1.6",
-		"@types/jest": "^29.5.12",
 		"@types/node": "^22.5.0",
+		"@vitest/coverage-v8": "^1.6.0",
 		"eslint": "^9.10.0",
 		"husky": "^9.1.5",
-		"jest": "^29.7.0",
 		"prettier": "^3.3.3",
 		"rolldown": "^0.15.0",
-		"ts-jest": "^29.4.6",
 		"tslib": "^2.7.0",
 		"tsx": "^4.21.0",
 		"typescript": "^5.5.4",
-		"typescript-eslint": "^8.4.0"
+		"typescript-eslint": "^8.4.0",
+		"vitest": "^1.6.0"
 	},
 	"files": [
 		"dist/"
-	]
+	],
+	"dependencies": {
+		"fast-xml-parser": "^5.5.6",
+		"zod": "^4.3.6"
+	}
 }
