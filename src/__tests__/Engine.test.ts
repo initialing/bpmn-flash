@@ -1,6 +1,10 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import Engine from '../Engine';
-import { simpleProcessXML, gatewayProcessXML, complexProcessXML } from './fixtures/sample-processes';
+import {
+	simpleProcessXML,
+	gatewayProcessXML,
+	complexProcessXML,
+} from './fixtures/sample-processes';
 
 describe('Engine', () => {
 	let engine: Engine;
@@ -21,7 +25,10 @@ describe('Engine', () => {
 
 		test('E002: 启动时应能传入初始数据', async () => {
 			const initialData = { applicant: '张三', amount: 1000 };
-			const result = await engine.startFromXml(simpleProcessXML, initialData);
+			const result = await engine.startFromXml(
+				simpleProcessXML,
+				initialData
+			);
 
 			expect(result.data).toEqual(initialData);
 		});
@@ -52,7 +59,9 @@ describe('Engine', () => {
 		});
 
 		test('E004: 启动不存在的流程定义应抛出异常', async () => {
-			await expect(engine.start('non-existent-process', {})).rejects.toThrow('流程定义');
+			await expect(
+				engine.start('non-existent-process', {})
+			).rejects.toThrow('流程定义');
 		});
 
 		test('多次启动应创建独立实例', async () => {
@@ -77,7 +86,9 @@ describe('Engine', () => {
 		});
 
 		test('E006: 获取不存在的实例应抛出异常', async () => {
-			await expect(engine.get({ id: 'non-existent-id' })).rejects.toThrow('未找到流程实例');
+			await expect(engine.get({ id: 'non-existent-id' })).rejects.toThrow(
+				'未找到流程实例'
+			);
 		});
 
 		test('获取实例应返回相同引用', async () => {
@@ -122,7 +133,9 @@ describe('Engine', () => {
 
 		test('invoke应更新任务数据', async () => {
 			const instance = await engine.startFromXml(simpleProcessXML, {});
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 
 			const completeData = { decision: 'approved', comment: '同意' };
 			await engine.invoke(
@@ -139,7 +152,9 @@ describe('Engine', () => {
 	describe('assign - 分配任务', () => {
 		test('E009: 应能分配任务给指定用户', async () => {
 			const instance = await engine.startFromXml(simpleProcessXML, {});
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 
 			await engine.assign(
 				{ instanceId: instance.id, elementId: userTask!.elementId },
@@ -153,7 +168,9 @@ describe('Engine', () => {
 
 		test('E010: 应能分配任务候选用户和组', async () => {
 			const instance = await engine.startFromXml(simpleProcessXML, {});
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 
 			await engine.assign(
 				{ instanceId: instance.id, elementId: userTask!.elementId },
@@ -161,7 +178,7 @@ describe('Engine', () => {
 				{
 					assignee: '经理',
 					candidateUsers: ['张三', '李四'],
-					candidateGroups: ['审批组']
+					candidateGroups: ['审批组'],
 				}
 			);
 
@@ -178,7 +195,9 @@ describe('Engine', () => {
 
 			// 注意：startEvent通常在启动时自动触发
 			// 此方法用于手动触发额外的起始事件（如消息启动）
-			const result = await engine.startEvent(instance.id, 'start', { triggerData: true });
+			const result = await engine.startEvent(instance.id, 'start', {
+				triggerData: true,
+			});
 
 			expect(result).toBeDefined();
 		});
@@ -187,7 +206,9 @@ describe('Engine', () => {
 	describe('restart - 重启任务', () => {
 		test('E012: 应能重启已完成任务', async () => {
 			const instance = await engine.startFromXml(simpleProcessXML, {});
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 
 			// 先完成任务
 			await engine.invoke(
@@ -208,9 +229,15 @@ describe('Engine', () => {
 
 	describe('多实例管理', () => {
 		test('E013: 应能管理多个流程实例', async () => {
-			const instance1 = await engine.startFromXml(simpleProcessXML, { instance: 1 });
-			const instance2 = await engine.startFromXml(simpleProcessXML, { instance: 2 });
-			const instance3 = await engine.startFromXml(simpleProcessXML, { instance: 3 });
+			const instance1 = await engine.startFromXml(simpleProcessXML, {
+				instance: 1,
+			});
+			const instance2 = await engine.startFromXml(simpleProcessXML, {
+				instance: 2,
+			});
+			const instance3 = await engine.startFromXml(simpleProcessXML, {
+				instance: 3,
+			});
 
 			// 验证每个实例独立
 			const retrieved1 = await engine.get({ id: instance1.id });
@@ -223,11 +250,17 @@ describe('Engine', () => {
 		});
 
 		test('E014: 实例间应相互隔离', async () => {
-			const instance1 = await engine.startFromXml(simpleProcessXML, { value: 1 });
-			const instance2 = await engine.startFromXml(simpleProcessXML, { value: 2 });
+			const instance1 = await engine.startFromXml(simpleProcessXML, {
+				value: 1,
+			});
+			const instance2 = await engine.startFromXml(simpleProcessXML, {
+				value: 2,
+			});
 
 			// 完成第一个实例的任务
-			const task1 = instance1.getItems().find(item => item.type === 'bpmn:userTask');
+			const task1 = instance1
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			await engine.invoke(
 				{ instanceId: instance1.id, elementId: task1!.elementId },
 				{ completed: true }

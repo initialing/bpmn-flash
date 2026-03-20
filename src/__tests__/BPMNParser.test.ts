@@ -1,6 +1,10 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import BPMNParser from '../parser/BPMNParser';
-import { simpleProcessXML, gatewayProcessXML, complexProcessXML } from './fixtures/sample-processes';
+import {
+	simpleProcessXML,
+	gatewayProcessXML,
+	complexProcessXML,
+} from './fixtures/sample-processes';
 
 describe('BPMNParser', () => {
 	describe('parse - 基础解析', () => {
@@ -30,16 +34,21 @@ describe('BPMNParser', () => {
 		});
 
 		test('P004: 空XML应抛出异常', () => {
-			expect(() => BPMNParser.parse('')).toThrow('BF_PARSE_XML_FORMAT_ERROR');
+			expect(() => BPMNParser.parse('')).toThrow(
+				'BF_PARSE_XML_FORMAT_ERROR'
+			);
 		});
 
 		test('P005: 无效XML格式应抛出异常', () => {
 			const invalidXML = '<root><unclosed>';
-			expect(() => BPMNParser.parse(invalidXML)).toThrow('BF_PARSE_XML_FORMAT_ERROR');
+			expect(() => BPMNParser.parse(invalidXML)).toThrow(
+				'BF_PARSE_XML_FORMAT_ERROR'
+			);
 		});
 
 		test('P006: 不含process的XML应抛出异常', () => {
-			const noProcessXML = '<?xml version="1.0"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"></bpmn:definitions>';
+			const noProcessXML =
+				'<?xml version="1.0"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"></bpmn:definitions>';
 			// 根据实际实现，可能返回空定义或抛出异常
 			const result = BPMNParser.parse(noProcessXML);
 			expect(result.elements.size).toBe(0);
@@ -55,7 +64,10 @@ describe('BPMNParser', () => {
 		});
 
 		test('应使用id作为默认name当name未提供', () => {
-			const xmlWithoutName = simpleProcessXML.replace('name="简单流程"', '');
+			const xmlWithoutName = simpleProcessXML.replace(
+				'name="简单流程"',
+				''
+			);
 			const result = BPMNParser.parse(xmlWithoutName);
 
 			expect(result.name).toBe('simple-process');
@@ -134,7 +146,9 @@ describe('BPMNParser', () => {
 			const conditionalFlow = result.sequenceFlows.get('flow2');
 
 			expect(conditionalFlow).toBeDefined();
-			expect(conditionalFlow?.conditionExpression).toContain('data.approved');
+			expect(conditionalFlow?.conditionExpression).toContain(
+				'data.approved'
+			);
 		});
 
 		test('P018: 应解析默认顺序流属性', () => {

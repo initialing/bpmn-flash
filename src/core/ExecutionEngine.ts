@@ -12,149 +12,153 @@ import { ParallelGatewayExecutor } from '../executors/ParallelGatewayExecutor.js
  * 负责处理令牌流转和节点执行
  */
 export class ExecutionEngine {
-  private executors: Map<string, NodeExecutor>;
+	private executors: Map<string, NodeExecutor>;
 
-  constructor() {
-    // 初始化所有执行器
-    this.executors = new Map();
-    this.registerExecutor(new StartEventExecutor());
-    this.registerExecutor(new EndEventExecutor());
-    this.registerExecutor(new UserTaskExecutor());
-    this.registerExecutor(new ServiceTaskExecutor());
-    this.registerExecutor(new ExclusiveGatewayExecutor());
-    this.registerExecutor(new ParallelGatewayExecutor());
-  }
+	constructor() {
+		// 初始化所有执行器
+		this.executors = new Map();
+		this.registerExecutor(new StartEventExecutor());
+		this.registerExecutor(new EndEventExecutor());
+		this.registerExecutor(new UserTaskExecutor());
+		this.registerExecutor(new ServiceTaskExecutor());
+		this.registerExecutor(new ExclusiveGatewayExecutor());
+		this.registerExecutor(new ParallelGatewayExecutor());
+	}
 
-  /**
-   * 注册节点执行器
-   */
-  registerExecutor(executor: NodeExecutor): void {
-    executor.getSupportedTypes().forEach(type => {
-      this.executors.set(type, executor);
-    });
-  }
+	/**
+	 * 注册节点执行器
+	 */
+	registerExecutor(executor: NodeExecutor): void {
+		executor.getSupportedTypes().forEach(type => {
+			this.executors.set(type, executor);
+		});
+	}
 
-  /**
-   * 执行流程状态中的待执行元素
-   */
-  execute(state: ProcessState): ProcessState {
-    // 执行所有活跃令牌，直到没有更多可执行的令牌
-    let currentState = { ...state };
-    let hasChanges = true;
-    let iterationCount = 0;
-    const maxIterations = 100; // 防止无限循环
+	/**
+	 * 执行流程状态中的待执行元素
+	 */
+	execute(state: ProcessState): ProcessState {
+		// 执行所有活跃令牌，直到没有更多可执行的令牌
+		let currentState = { ...state };
+		let hasChanges = true;
+		let iterationCount = 0;
+		const maxIterations = 100; // 防止无限循环
 
-    while (hasChanges && iterationCount < maxIterations) {
-      hasChanges = false;
-      iterationCount++;
+		while (hasChanges && iterationCount < maxIterations) {
+			hasChanges = false;
+			iterationCount++;
 
-      // 如果当前状态中有令牌，则执行它们
-      if (currentState.tokens && currentState.tokens.length > 0) {
-        const newTokens = [...currentState.tokens];
-        const processedTokens = [];
+			// 如果当前状态中有令牌，则执行它们
+			if (currentState.tokens && currentState.tokens.length > 0) {
+				const newTokens = [...currentState.tokens];
+				const processedTokens = [];
 
-        for (let i = 0; i < newTokens.length; i++) {
-          const token = newTokens[i];
-          
-          // 尝试执行这个令牌
-          const result = this.executeToken(currentState, token);
-          
-          if (result.success) {
-            // 更新状态
-            currentState = result.newState;
-            hasChanges = true;
-            processedTokens.push(token.id);
-          }
-        }
+				for (let i = 0; i < newTokens.length; i++) {
+					const token = newTokens[i];
 
-        // 从未处理的令牌中过滤掉已处理的
-        currentState.tokens = currentState.tokens.filter(
-          token => !processedTokens.includes(token.id)
-        );
-      } else {
-        // 如果没有活跃令牌，检查是否流程已完成
-        if (currentState.status === 'running') {
-          // 检查是否还有未完成的任务
-          const incompleteItems = currentState.items.filter(
-            item => item.status !== 'completed'
-          );
-          
-          if (incompleteItems.length === 0) {
-            // 如果没有未完成的任务，标记流程为完成
-            currentState = {
-              ...currentState,
-              status: 'completed',
-              endedAt: new Date()
-            };
-          }
-        }
-        break; // 没有令牌可以执行，退出循环
-      }
-    }
+					// 尝试执行这个令牌
+					const result = this.executeToken(currentState, token);
 
-    return currentState;
-  }
+					if (result.success) {
+						// 更新状态
+						currentState = result.newState;
+						hasChanges = true;
+						processedTokens.push(token.id);
+					}
+				}
 
-  /**
-   * 执行单个令牌
-   */
-  private executeToken(state: ProcessState, token: any): ExecutionResult {
-    try {
-      // 这里我们需要访问流程定义来获取元素信息
-      // 由于当前没有流程定义的引用，我们暂时返回原状态
-      // 在完整的实现中，这里会获取元素定义并选择合适的执行器
-      
-      return {
-        newState: state,
-        tasks: [],
-        events: [],
-        success: true
-      };
-    } catch (error) {
-      return {
-        newState: state,
-        tasks: [],
-        events: [],
-        success: false,
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
+				// 从未处理的令牌中过滤掉已处理的
+				currentState.tokens = currentState.tokens.filter(
+					token => !processedTokens.includes(token.id)
+				);
+			} else {
+				// 如果没有活跃令牌，检查是否流程已完成
+				if (currentState.status === 'running') {
+					// 检查是否还有未完成的任务
+					const incompleteItems = currentState.items.filter(
+						item => item.status !== 'completed'
+					);
 
-  /**
-   * 处理特定元素
-   */
-  processElement(state: ProcessState, element: any, token: any): ProcessState {
-    // 查找适合处理此元素类型的执行器
-    const executor = this.findExecutor(element.type);
-    
-    if (executor) {
-      return executor.execute(state, element, token);
-    } else {
-      // 如果没有找到合适的执行器，记录错误并返回原状态
-      console.warn(`No executor found for element type: ${element.type}`);
-      return state;
-    }
-  }
+					if (incompleteItems.length === 0) {
+						// 如果没有未完成的任务，标记流程为完成
+						currentState = {
+							...currentState,
+							status: 'completed',
+							endedAt: new Date(),
+						};
+					}
+				}
+				break; // 没有令牌可以执行，退出循环
+			}
+		}
 
-  /**
-   * 查找适合处理指定类型元素的执行器
-   */
-  private findExecutor(elementType: string): NodeExecutor | undefined {
-    return this.executors.get(elementType);
-  }
+		return currentState;
+	}
 
-  /**
-   * 继续执行流程（处理后续令牌）
-   */
-  continueExecution(state: ProcessState): ProcessState {
-    return this.execute(state);
-  }
+	/**
+	 * 执行单个令牌
+	 */
+	private executeToken(state: ProcessState, token: any): ExecutionResult {
+		try {
+			// 这里我们需要访问流程定义来获取元素信息
+			// 由于当前没有流程定义的引用，我们暂时返回原状态
+			// 在完整的实现中，这里会获取元素定义并选择合适的执行器
 
-  /**
-   * 获取所有注册的执行器
-   */
-  getExecutors(): NodeExecutor[] {
-    return Array.from(this.executors.values());
-  }
+			return {
+				newState: state,
+				tasks: [],
+				events: [],
+				success: true,
+			};
+		} catch (error) {
+			return {
+				newState: state,
+				tasks: [],
+				events: [],
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
+
+	/**
+	 * 处理特定元素
+	 */
+	processElement(
+		state: ProcessState,
+		element: any,
+		token: any
+	): ProcessState {
+		// 查找适合处理此元素类型的执行器
+		const executor = this.findExecutor(element.type);
+
+		if (executor) {
+			return executor.execute(state, element, token);
+		} else {
+			// 如果没有找到合适的执行器，记录错误并返回原状态
+			console.warn(`No executor found for element type: ${element.type}`);
+			return state;
+		}
+	}
+
+	/**
+	 * 查找适合处理指定类型元素的执行器
+	 */
+	private findExecutor(elementType: string): NodeExecutor | undefined {
+		return this.executors.get(elementType);
+	}
+
+	/**
+	 * 继续执行流程（处理后续令牌）
+	 */
+	continueExecution(state: ProcessState): ProcessState {
+		return this.execute(state);
+	}
+
+	/**
+	 * 获取所有注册的执行器
+	 */
+	getExecutors(): NodeExecutor[] {
+		return Array.from(this.executors.values());
+	}
 }

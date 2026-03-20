@@ -31,5 +31,18 @@ export {
   ExecutionResultSchema
 } from './validators/WorkflowValidators.js';
 
+// 扩展点（预留）
+export type {
+  EngineHookType,
+  EngineHook,
+  HookContext,
+  WorkflowPlugin,
+  PluginRegistry,
+  WorkflowEngineOptions,
+  ExtendedExecutionResult
+} from './extensions/ExtensionPoints.js';
+
+export { SimplePluginRegistry } from './extensions/ExtensionPoints.js';
+
 // 类型定义
 export * from './types/index.js';

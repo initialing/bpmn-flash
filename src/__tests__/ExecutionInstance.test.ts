@@ -1,7 +1,11 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import ExecutionInstance from '../ExecutionInstance';
 import BPMNParser from '../parser/BPMNParser';
-import { simpleProcessXML, gatewayProcessXML, complexProcessXML } from './fixtures/sample-processes';
+import {
+	simpleProcessXML,
+	gatewayProcessXML,
+	complexProcessXML,
+} from './fixtures/sample-processes';
 
 describe('ExecutionInstance', () => {
 	describe('初始化', () => {
@@ -29,8 +33,12 @@ describe('ExecutionInstance', () => {
 			const instance = new ExecutionInstance(definition, {});
 			const after = new Date();
 
-			expect(instance.startedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
-			expect(instance.startedAt.getTime()).toBeLessThanOrEqual(after.getTime());
+			expect(instance.startedAt.getTime()).toBeGreaterThanOrEqual(
+				before.getTime()
+			);
+			expect(instance.startedAt.getTime()).toBeLessThanOrEqual(
+				after.getTime()
+			);
 		});
 	});
 
@@ -43,7 +51,9 @@ describe('ExecutionInstance', () => {
 			await instance.execute();
 
 			// 自动任务应已执行，等待用户任务
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			expect(userTask).toBeDefined();
 		});
 
@@ -55,7 +65,9 @@ describe('ExecutionInstance', () => {
 
 			// 服务任务应该已经自动完成
 			const items = instance.getItems();
-			const serviceTask = items.find(item => item.elementId === 'service1');
+			const serviceTask = items.find(
+				item => item.elementId === 'service1'
+			);
 			// 服务任务是自动执行的，不会创建wait状态的item
 			expect(serviceTask?.status || 'completed').toBe('completed');
 		});
@@ -82,7 +94,9 @@ describe('ExecutionInstance', () => {
 			// 用户任务应该处于等待状态
 			expect(instance.status).toBe('wait');
 
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			expect(userTask).toBeDefined();
 			expect(userTask?.status).toBe('wait');
 		});
@@ -93,7 +107,9 @@ describe('ExecutionInstance', () => {
 
 			await instance.execute();
 
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			expect(userTask?.status).toBe('wait');
 
 			// 完成任务
@@ -109,7 +125,9 @@ describe('ExecutionInstance', () => {
 			const instance = new ExecutionInstance(definition, {});
 
 			// 尝试invoke不存在的任务
-			await expect(instance.invoke('non-existent-task', {})).rejects.toThrow('未找到');
+			await expect(
+				instance.invoke('non-existent-task', {})
+			).rejects.toThrow('未找到');
 		});
 
 		test('invoke应更新任务数据', async () => {
@@ -118,7 +136,9 @@ describe('ExecutionInstance', () => {
 
 			await instance.execute();
 
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			const completeData = { decision: 'approved', comment: '同意申请' };
 
 			await instance.invoke(userTask!.elementId, completeData);
@@ -135,7 +155,9 @@ describe('ExecutionInstance', () => {
 
 			await instance.execute();
 
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 
 			// 分配给用户
 			await instance.assign(userTask!.elementId, '张三');
@@ -150,12 +172,14 @@ describe('ExecutionInstance', () => {
 
 			await instance.execute();
 
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 
 			await instance.assign(userTask!.elementId, {
 				assignee: '经理',
 				candidateUsers: ['张三', '李四'],
-				candidateGroups: ['审批组', '管理组']
+				candidateGroups: ['审批组', '管理组'],
 			});
 
 			const updatedTask = instance.getItem(userTask!.elementId);
@@ -168,13 +192,19 @@ describe('ExecutionInstance', () => {
 	describe('排他网关', () => {
 		test('X010: 排他网关应根据条件选择分支', async () => {
 			const definition = BPMNParser.parse(gatewayProcessXML);
-			const instance = new ExecutionInstance(definition, { approved: true });
+			const instance = new ExecutionInstance(definition, {
+				approved: true,
+			});
 
 			await instance.execute();
 
 			// 应该走 approvedTask 分支
-			const approvedTask = instance.getItems().find(item => item.elementId === 'approvedTask');
-			const rejectedTask = instance.getItems().find(item => item.elementId === 'rejectedTask');
+			const approvedTask = instance
+				.getItems()
+				.find(item => item.elementId === 'approvedTask');
+			const rejectedTask = instance
+				.getItems()
+				.find(item => item.elementId === 'rejectedTask');
 
 			expect(approvedTask).toBeDefined();
 			expect(rejectedTask).toBeUndefined();
@@ -182,13 +212,19 @@ describe('ExecutionInstance', () => {
 
 		test('X011: 排他网关应使用默认分支', async () => {
 			const definition = BPMNParser.parse(gatewayProcessXML);
-			const instance = new ExecutionInstance(definition, { approved: false });
+			const instance = new ExecutionInstance(definition, {
+				approved: false,
+			});
 
 			await instance.execute();
 
 			// 应该走默认分支（rejectedTask）
-			const approvedTask = instance.getItems().find(item => item.elementId === 'approvedTask');
-			const rejectedTask = instance.getItems().find(item => item.elementId === 'rejectedTask');
+			const approvedTask = instance
+				.getItems()
+				.find(item => item.elementId === 'approvedTask');
+			const rejectedTask = instance
+				.getItems()
+				.find(item => item.elementId === 'rejectedTask');
 
 			expect(approvedTask).toBeUndefined();
 			expect(rejectedTask).toBeDefined();
@@ -199,17 +235,20 @@ describe('ExecutionInstance', () => {
 			const testCases = [
 				{ data: { approved: true }, expected: 'approvedTask' },
 				{ data: { approved: false }, expected: 'rejectedTask' },
-				{ data: {}, expected: 'rejectedTask' } // 默认分支
+				{ data: {}, expected: 'rejectedTask' }, // 默认分支
 			];
 
 			for (const testCase of testCases) {
 				const definition = BPMNParser.parse(gatewayProcessXML);
-				const instance = new ExecutionInstance(definition, testCase.data);
+				const instance = new ExecutionInstance(
+					definition,
+					testCase.data
+				);
 				await instance.execute();
 
-				const task = instance.getItems().find(item =>
-					item.elementId === testCase.expected
-				);
+				const task = instance
+					.getItems()
+					.find(item => item.elementId === testCase.expected);
 				expect(task).toBeDefined();
 			}
 		});
@@ -218,12 +257,14 @@ describe('ExecutionInstance', () => {
 	describe('流程完成', () => {
 		test('X006: 流程正常结束应更新状态', async () => {
 			const definition = BPMNParser.parse(simpleProcessXML);
-		const instance = new ExecutionInstance(definition, {});
+			const instance = new ExecutionInstance(definition, {});
 
 			await instance.execute();
 
 			// 完成用户任务
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			await instance.invoke(userTask!.elementId, {});
 
 			// 流程应该已结束
@@ -244,7 +285,9 @@ describe('ExecutionInstance', () => {
 			expect(instance.status).toBe('wait');
 
 			// 完成任务
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			await instance.invoke(userTask!.elementId, {});
 
 			// 流程结束
@@ -259,11 +302,15 @@ describe('ExecutionInstance', () => {
 
 			await instance.execute();
 
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 
 			// 先完成任务
 			await instance.invoke(userTask!.elementId, { first: true });
-			expect(instance.getItem(userTask!.elementId)?.status).toBe('completed');
+			expect(instance.getItem(userTask!.elementId)?.status).toBe(
+				'completed'
+			);
 
 			// 重启任务
 			await instance.restart(userTask!.elementId, { second: true });
@@ -284,18 +331,24 @@ describe('ExecutionInstance', () => {
 			await instance.execute();
 
 			// 检查任务是否接收到初始数据
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			expect(userTask?.data).toMatchObject(initialData);
 		});
 
 		test('X018: 任务数据应随流程传递', async () => {
 			const definition = BPMNParser.parse(complexProcessXML);
-			const instance = new ExecutionInstance(definition, { initial: true });
+			const instance = new ExecutionInstance(definition, {
+				initial: true,
+			});
 
 			await instance.execute();
 
 			// 用户任务应该继承了初始数据
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			expect(userTask?.data).toMatchObject({ initial: true });
 		});
 	});
@@ -316,7 +369,9 @@ describe('ExecutionInstance', () => {
 			const definition = BPMNParser.parse(simpleProcessXML);
 			const instance = new ExecutionInstance(definition, {});
 
-			await expect(instance.startEvent('task1', {})).rejects.toThrow('不是起始事件');
+			await expect(instance.startEvent('task1', {})).rejects.toThrow(
+				'不是起始事件'
+			);
 		});
 	});
 
@@ -337,13 +392,15 @@ describe('ExecutionInstance', () => {
 				number: 123,
 				boolean: true,
 				array: [1, 2, 3],
-				nested: { key: 'value' }
+				nested: { key: 'value' },
 			};
 			const instance = new ExecutionInstance(definition, complexData);
 
 			await instance.execute();
 
-			const userTask = instance.getItems().find(item => item.type === 'bpmn:userTask');
+			const userTask = instance
+				.getItems()
+				.find(item => item.type === 'bpmn:userTask');
 			expect(userTask?.data).toEqual(complexData);
 		});
 
