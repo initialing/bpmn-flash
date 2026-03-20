@@ -246,19 +246,59 @@ class BPMNParser {
 		xml: string,
 		flowId: string
 	): string | null {
-		// 匹配包含 conditionExpression 的 sequenceFlow 元素
-		const flowRegex = new RegExp(
-			`<(?:bpmn:)?sequenceFlow\\s+[^>]*id="${flowId}"[^>]*>([\\s\\S]*?)<\\/(?:bpmn:)?sequenceFlow>`,
-			'i'
-		);
-		const flowMatch = xml.match(flowRegex);
+		// 使用字符串查找方式，避免正则表达式的复杂性
+		// 查找 <bpmn:sequenceFlow id="flowId" 或 id="flowId" 在 sequenceFlow 标签内
 		
-		if (!flowMatch) {
-			return null;
+		// 找到所有 sequenceFlow 开始标签
+		const flowTagStart = '<bpmn:sequenceFlow';
+		let searchPos = 0;
+		
+		while (searchPos < xml.length) {
+			const flowStart = xml.indexOf(flowTagStart, searchPos);
+			if (flowStart === -1) {
+				return null;
+			}
+			
+			// 找到这个标签的结束位置
+			const tagEnd = xml.indexOf('>', flowStart);
+			if (tagEnd === -1) {
+				return null;
+			}
+			
+			const tagContent = xml.substring(flowStart, tagEnd + 1);
+			
+			// 检查这个标签是否包含我们的 flowId
+			const idAttr = ` id="${flowId}"`;
+			if (!tagContent.includes(idAttr)) {
+				// 不是我们要找的 flow，继续下一个
+				searchPos = tagEnd + 1;
+				continue;
+			}
+			
+			// 检查是否是自闭合标签
+			if (tagContent.endsWith('/>')) {
+				return null;
+			}
+			
+			// 找到对应的结束标签
+			const endTag = '</bpmn:sequenceFlow>';
+			const endPos = xml.indexOf(endTag, tagEnd);
+			if (endPos === -1) {
+				return null;
+			}
+			
+			// 提取 flow 内容
+			const flowContent = xml.substring(tagEnd + 1, endPos);
+			return this.extractConditionFromFlow(flowContent);
 		}
+		
+		return null;
+	}
 
-		const flowContent = flowMatch[1];
-
+	/**
+	 * 从 flow 元素内容中提取条件表达式
+	 */
+	private static extractConditionFromFlow(flowContent: string): string | null {
 		// 从 flow 内容中提取 conditionExpression
 		const conditionRegex = /<(?:bpmn:)?conditionExpression[^>]*>([^<]+)<\/(?:bpmn:)?conditionExpression>/;
 		const conditionMatch = flowContent.match(conditionRegex);
