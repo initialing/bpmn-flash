@@ -1,6 +1,16 @@
-import { ExpressionContext, EvaluationResult } from '../types/index';
-import { VariableEvaluationError } from '../errors/WorkflowErrors';
+/**
+ * @fileoverview Variable Manager
+ * 管理流程变量的读写和表达式求值
+ */
 
+import { ExpressionContext, EvaluationResult } from '../types/index.js';
+import { VariableEvaluationError } from '../errors/WorkflowErrors.js';
+import { evaluateExpression } from '../utils/ExpressionEvaluator.js';
+
+/**
+ * 变量管理器
+ * 负责流程变量的存储、访问和表达式求值
+ */
 export class VariableManager {
 	private variables: Record<string, any> = {};
 
@@ -40,7 +50,21 @@ export class VariableManager {
 	}
 
 	/**
-	 * 求值表达式
+	 * 从流程状态加载变量
+	 */
+	loadFromState(stateVariables: Record<string, any>): void {
+		this.variables = { ...stateVariables };
+	}
+
+	/**
+	 * 保存变量到流程状态
+	 */
+	saveToState(): Record<string, any> {
+		return { ...this.variables };
+	}
+
+	/**
+	 * 求值表达式（使用安全的表达式求值器）
 	 */
 	evaluateExpression(
 		expression: string,
@@ -52,62 +76,8 @@ export class VariableManager {
 				? { ...context.variables, ...this.variables }
 				: this.variables;
 
-			// 简单的安全检查：不允许某些危险操作
-			if (this.containsUnsafeCode(expression)) {
-				throw new VariableEvaluationError(
-					`表达式包含不安全的操作: ${expression}`
-				);
-			}
-
-			// 替换表达式中的变量引用（例如 ${variableName} 或 #{variableName}）
-			let processedExpression = expression.trim();
-
-			// 处理 ${variableName} 格式
-			const varRegex = /\$\{([^}]+)\}/g;
-			processedExpression = processedExpression.replace(
-				varRegex,
-				(match, varName) => {
-					const value = evalContext[varName.trim()];
-					if (value === undefined || value === null) {
-						return 'undefined';
-					}
-					// 根据值的类型返回适当的表示
-					return typeof value === 'string'
-						? `"${value}"`
-						: String(value);
-				}
-			);
-
-			// 处理 #{variableName} 格式
-			const beanRegex = /#\{([^}]+)\}/g;
-			processedExpression = processedExpression.replace(
-				beanRegex,
-				(match, varName) => {
-					const value = evalContext[varName.trim()];
-					if (value === undefined || value === null) {
-						return 'undefined';
-					}
-					return typeof value === 'string'
-						? `"${value}"`
-						: String(value);
-				}
-			);
-
-			// 执行表达式
-			// 注意：在生产环境中，应该使用更安全的表达式解析库
-			// 这里仅作演示用途
-			let result: any;
-			try {
-				// 创建一个安全的执行环境
-				const safeEval = new Function(
-					...Object.keys(evalContext),
-					`return (${processedExpression})`
-				);
-				result = safeEval(...Object.values(evalContext));
-			} catch (e) {
-				// 如果表达式本身有问题，尝试直接求值
-				result = eval(processedExpression);
-			}
+			// 使用安全的表达式求值器（替代 new Function 和 eval）
+			const result = evaluateExpression(expression, evalContext);
 
 			return {
 				success: true,
@@ -122,27 +92,20 @@ export class VariableManager {
 	}
 
 	/**
-	 * 检查表达式是否包含不安全的代码
+	 * 验证变量名是否合法
 	 */
-	private containsUnsafeCode(expression: string): boolean {
-		// 检查常见的危险模式
-		const unsafePatterns = [
-			/\b(import|require|process|global|window|document|eval|Function|constructor|__proto__|prototype)\b/,
-			/require\s*\(/,
-			/import\s+/,
-			/from\s+/,
-			/global\./,
-			/process\./,
-			/window\./,
-			/document\./,
-			/location\./,
-			/history\./,
-			/navigator\./,
-			/XMLHttpRequest|fetch|WebSocket/,
-			/setTimeout|setInterval|setImmediate/,
-			/os\.|\bfs\b|\bchild_process\b|\bcrypto\b/,
-		];
+	private validateVariableName(name: string): boolean {
+		// 变量名只能包含字母、数字、下划线和$，且不能以数字开头
+		return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name);
+	}
 
-		return unsafePatterns.some(pattern => pattern.test(expression));
+	/**
+	 * 设置变量（带验证）
+	 */
+	setVariableSafe(name: string, value: any): void {
+		if (!this.validateVariableName(name)) {
+			throw new VariableEvaluationError(`无效的变量名：${name}`);
+		}
+		this.setVariable(name, value);
 	}
 }
