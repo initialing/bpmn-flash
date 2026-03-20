@@ -228,6 +228,7 @@ class ExecutionInstance {
 				await this.executeScriptTask(element, token);
 				break;
 
+			case 'bpmn:exclusiveGateway':
 			case 'bpmn:ExclusiveGateway':
 				await this.executeExclusiveGateway(element, token);
 				break;

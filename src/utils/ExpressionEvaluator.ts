@@ -60,14 +60,7 @@ function evaluateSimpleExpression(
 		return !evaluateSimpleExpression(innerExpr, context);
 	}
 
-	// 处理比较运算符
-	if (expr.includes('==')) {
-		const [left, right] = splitComparison(expr, '==');
-		return (
-			getValue(left.trim(), context) == getValue(right.trim(), context)
-		);
-	}
-
+	// 处理比较运算符（注意：必须先检查长的运算符，再检查短的）
 	if (expr.includes('===')) {
 		const [left, right] = splitComparison(expr, '===');
 		return (
@@ -75,10 +68,10 @@ function evaluateSimpleExpression(
 		);
 	}
 
-	if (expr.includes('!=')) {
-		const [left, right] = splitComparison(expr, '!=');
+	if (expr.includes('==')) {
+		const [left, right] = splitComparison(expr, '==');
 		return (
-			getValue(left.trim(), context) != getValue(right.trim(), context)
+			getValue(left.trim(), context) == getValue(right.trim(), context)
 		);
 	}
 
@@ -86,6 +79,13 @@ function evaluateSimpleExpression(
 		const [left, right] = splitComparison(expr, '!==');
 		return (
 			getValue(left.trim(), context) !== getValue(right.trim(), context)
+		);
+	}
+
+	if (expr.includes('!=')) {
+		const [left, right] = splitComparison(expr, '!=');
+		return (
+			getValue(left.trim(), context) != getValue(right.trim(), context)
 		);
 	}
 
