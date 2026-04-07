@@ -1,5 +1,5 @@
 import { ProcessState, ExecutionResult } from '../state/WorkflowState.js';
-import { ProcessDefinition } from '../types/index.js';
+import { ProcessDefinition, ElementLike, TokenLike } from '../types/index.js';
 import { NodeExecutor } from '../executors/NodeExecutor.js';
 import { StartEventExecutor } from '../executors/StartEventExecutor.js';
 import { EndEventExecutor } from '../executors/EndEventExecutor.js';
@@ -7,6 +7,7 @@ import { UserTaskExecutor } from '../executors/UserTaskExecutor.js';
 import { ServiceTaskExecutor } from '../executors/ServiceTaskExecutor.js';
 import { ExclusiveGatewayExecutor } from '../executors/ExclusiveGatewayExecutor.js';
 import { ParallelGatewayExecutor } from '../executors/ParallelGatewayExecutor.js';
+import { Item } from '../types/index.js';
 
 /**
  * 执行引擎
@@ -57,7 +58,7 @@ export class ExecutionEngine {
 			// 如果当前状态中有令牌，则执行它们
 			if (currentState.tokens && currentState.tokens.length > 0) {
 				const newTokens = [...currentState.tokens];
-				const processedTokens = [];
+				const processedTokens: string[] = [];
 
 				for (let i = 0; i < newTokens.length; i++) {
 					const token = newTokens[i];
@@ -110,7 +111,7 @@ export class ExecutionEngine {
 	 */
 	private async executeToken(
 		state: ProcessState,
-		token: any,
+		token: TokenLike,
 		definition: ProcessDefinition
 	): Promise<ExecutionResult> {
 		try {
@@ -166,8 +167,8 @@ export class ExecutionEngine {
 	 */
 	async processElement(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState> {
 		// 查找适合处理此元素类型的执行器
 		const executor = this.findExecutor(element.type);
@@ -192,7 +193,7 @@ export class ExecutionEngine {
 	 * 继续执行流程（处理后续令牌）
 	 */
 	async continueExecution(state: ProcessState): Promise<ProcessState> {
-		return await this.execute(state);
+		return await this.execute(state, {} as ProcessDefinition);
 	}
 
 	/**
@@ -200,5 +201,31 @@ export class ExecutionEngine {
 	 */
 	getExecutors(): NodeExecutor[] {
 		return Array.from(this.executors.values());
+	}
+
+	/**
+	 * 生成任务列表
+	 */
+	private generateTasks(state: ProcessState): Item[] {
+		return state.items.filter(item => item.status === 'wait');
+	}
+
+	/**
+	 * 生成事件列表
+	 */
+	private generateEvents(
+		oldState: ProcessState,
+		newState: ProcessState,
+		element: ElementLike
+	): ProcessEvent[] {
+		const events: ProcessEvent[] = [];
+		if (element.type.includes('startEvent')) {
+			events.push({
+				type: 'TASK_CREATED',
+				payload: { elementId: element.id },
+				timestamp: new Date(),
+			});
+		}
+		return events;
 	}
 }

@@ -5,7 +5,7 @@ import { ProcessDefinition, Token, Item } from '../types/index.js';
  * 无状态设计，所有变更通过纯函数计算产生新状态
  */
 export interface ProcessState {
-	/** 流程实例ID */
+	/** 流程实例 ID */
 	id: string;
 	/** 流程名称 */
 	name: string;
@@ -55,8 +55,28 @@ export interface StateAction {
 		| 'TRANSITION_TOKEN'
 		| 'UPDATE_DATA'
 		| 'ERROR_OCCURRED';
-	payload: any;
+	payload: StateActionPayload;
 	timestamp: Date;
+}
+
+/**
+ * 状态动作负载类型
+ */
+export interface StateActionPayload {
+	elementId?: string;
+	elementType?: string;
+	tokens?: Token[];
+	initialData?: Record<string, any>;
+	newData?: Record<string, any>;
+	tokenId?: string;
+	item?: Item;
+	nextTokens?: Token[];
+	data?: Record<string, any>;
+	error?: string;
+	originalAction?: StateAction;
+	taskId?: string;
+	itemId?: string;
+	[key: string]: any;
 }
 
 /**
@@ -86,7 +106,7 @@ export interface ProcessEvent {
 		| 'PROCESS_COMPLETED'
 		| 'TOKEN_MOVED'
 		| 'GATEWAY_EVALUATED';
-	payload: any;
+	payload: Record<string, any>;
 	timestamp: Date;
 }
 
@@ -130,86 +150,86 @@ export class WorkflowState {
 		};
 
 		switch (action.type) {
-			case 'START_PROCESS':
-				return {
-					...state,
-					status: 'running',
-					startedAt: state.startedAt || new Date(),
-					tokens: [...state.tokens, ...(action.payload.tokens || [])],
-					history: [...state.history, newHistoryEntry],
-				};
+		case 'START_PROCESS':
+			return {
+				...state,
+				status: 'running',
+				startedAt: state.startedAt || new Date(),
+				tokens: [...state.tokens, ...(action.payload.tokens || [])],
+				history: [...state.history, newHistoryEntry],
+			};
 
-			case 'EXECUTE_ELEMENT':
-				return {
-					...state,
-					data: { ...state.data, ...action.payload.newData },
-					tokens: state.tokens.filter(
+		case 'EXECUTE_ELEMENT':
+			return {
+				...state,
+				data: { ...state.data, ...action.payload.newData },
+				tokens: state.tokens.filter(
+					t => t.id !== action.payload.tokenId
+				),
+				items: action.payload.item
+					? [...state.items, action.payload.item]
+					: state.items,
+				history: [...state.history, newHistoryEntry],
+			};
+
+		case 'COMPLETE_TASK':
+			return {
+				...state,
+				items: state.items.map(item =>
+					item.id === action.payload.itemId
+						? {
+							...item,
+							status: 'completed',
+							endedAt: new Date(),
+						}
+						: item
+				),
+				tokens: [
+					...state.tokens,
+					...(action.payload.nextTokens || []),
+				],
+				history: [...state.history, newHistoryEntry],
+			};
+
+		case 'TRANSITION_TOKEN':
+			return {
+				...state,
+				tokens: [
+					...state.tokens.filter(
 						t => t.id !== action.payload.tokenId
 					),
-					items: action.payload.item
-						? [...state.items, action.payload.item]
-						: state.items,
-					history: [...state.history, newHistoryEntry],
-				};
+					...(action.payload.newTokens || []),
+				],
+				history: [...state.history, newHistoryEntry],
+			};
 
-			case 'COMPLETE_TASK':
-				return {
-					...state,
-					items: state.items.map(item =>
-						item.id === action.payload.itemId
-							? {
-									...item,
-									status: 'completed',
-									endedAt: new Date(),
-								}
-							: item
-					),
-					tokens: [
-						...state.tokens,
-						...(action.payload.nextTokens || []),
-					],
-					history: [...state.history, newHistoryEntry],
-				};
+		case 'UPDATE_DATA':
+			return {
+				...state,
+				data: { ...state.data, ...action.payload.data },
+				history: [...state.history, newHistoryEntry],
+			};
 
-			case 'TRANSITION_TOKEN':
-				return {
-					...state,
-					tokens: [
-						...state.tokens.filter(
-							t => t.id !== action.payload.tokenId
-						),
-						...(action.payload.newTokens || []),
-					],
-					history: [...state.history, newHistoryEntry],
-				};
+		case 'ERROR_OCCURRED':
+			return {
+				...state,
+				history: [
+					...state.history,
+					{
+						...newHistoryEntry,
+						action: 'error',
+						error: action.payload.error,
+					},
+				],
+			};
 
-			case 'UPDATE_DATA':
-				return {
-					...state,
-					data: { ...state.data, ...action.payload.data },
-					history: [...state.history, newHistoryEntry],
-				};
-
-			case 'ERROR_OCCURRED':
-				return {
-					...state,
-					history: [
-						...state.history,
-						{
-							...newHistoryEntry,
-							action: 'error',
-							error: action.payload.error,
-						},
-					],
-				};
-
-			default:
-				return state;
+		default:
+			return state;
 		}
 	}
 
 	/**
-	 * 序列化状态为JSON
+	 * 序列化状态为 JSON
 	 */
 	static serialize(state: ProcessState): string {
 		const serializableState = {
@@ -235,7 +255,7 @@ export class WorkflowState {
 	}
 
 	/**
-	 * 从JSON反序列化状态
+	 * 从 JSON 反序列化状态
 	 */
 	static deserialize(serializedState: string): ProcessState {
 		const parsed = JSON.parse(serializedState);
@@ -247,16 +267,16 @@ export class WorkflowState {
 				? new Date(parsed.startedAt)
 				: undefined,
 			endedAt: parsed.endedAt ? new Date(parsed.endedAt) : undefined,
-			tokens: parsed.tokens.map((token: any) => ({
+			tokens: parsed.tokens.map((token: Token) => ({
 				...token,
 				createdAt: new Date(token.createdAt),
 			})),
-			items: parsed.items.map((item: any) => ({
+			items: parsed.items.map((item: Item) => ({
 				...item,
 				startedAt: new Date(item.startedAt),
 				endedAt: item.endedAt ? new Date(item.endedAt) : undefined,
 			})),
-			history: parsed.history.map((entry: any) => ({
+			history: parsed.history.map((entry: ExecutionHistoryEntry) => ({
 				...entry,
 				timestamp: new Date(entry.timestamp),
 			})),
@@ -264,7 +284,7 @@ export class WorkflowState {
 	}
 
 	/**
-	 * 生成唯一ID
+	 * 生成唯一 ID
 	 */
 	private static generateId(): string {
 		return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -277,18 +297,18 @@ export class WorkflowState {
 		actionType: string
 	): ExecutionHistoryEntry['action'] {
 		switch (actionType) {
-			case 'START_PROCESS':
-				return 'start';
-			case 'EXECUTE_ELEMENT':
-				return 'transition';
-			case 'COMPLETE_TASK':
-				return 'complete';
-			case 'TRANSITION_TOKEN':
-				return 'transition';
-			case 'ERROR_OCCURRED':
-				return 'error';
-			default:
-				return 'transition';
+		case 'START_PROCESS':
+			return 'start';
+		case 'EXECUTE_ELEMENT':
+			return 'transition';
+		case 'COMPLETE_TASK':
+			return 'complete';
+		case 'TRANSITION_TOKEN':
+			return 'transition';
+		case 'ERROR_OCCURRED':
+			return 'error';
+		default:
+			return 'transition';
 		}
 	}
 }

@@ -1,5 +1,6 @@
-import { ProcessState, Item } from '../state/WorkflowState.js';
+import { ProcessState } from '../state/WorkflowState.js';
 import { BaseNodeExecutor } from './NodeExecutor.js';
+import { ElementLike, TokenLike, Item } from '../types/index.js';
 
 /**
  * 用户任务执行器
@@ -18,8 +19,8 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	 */
 	async execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState> {
 		// 记录用户任务执行历史
 		let newState = this.addHistoryEntry(state, element, 'start', {
@@ -33,7 +34,7 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 			elementId: element.id,
 			name: element.name || element.id,
 			type: element.type,
-			status: 'waiting', // 用户任务默认为等待状态
+			status: 'wait',
 			data: { ...token.data },
 			startedAt: new Date(),
 			createdAt: new Date(),
@@ -41,7 +42,6 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 			candidateUsers: this.extractCandidateUsers(element),
 			candidateGroups: this.extractCandidateGroups(element),
 			priority: this.extractPriority(element),
-			endedAt: undefined,
 		};
 
 		// 添加任务到状态
@@ -56,7 +56,7 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 		if (newState.status === 'running') {
 			newState = {
 				...newState,
-				status: 'suspended', // 流程暂停等待用户操作
+				status: 'suspended',
 			};
 		}
 
@@ -66,9 +66,7 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	/**
 	 * 从元素中提取负责人
 	 */
-	private extractAssignee(element: any): string | undefined {
-		// 从元素属性中提取分配给特定用户的信息
-		// 支持两种格式：properties 和 assignmentDefinition
+	private extractAssignee(element: ElementLike): string | undefined {
 		if (element.properties && element.properties.assignee) {
 			return element.properties.assignee;
 		}
@@ -84,9 +82,7 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	/**
 	 * 从元素中提取候选用户
 	 */
-	private extractCandidateUsers(element: any): string[] | undefined {
-		// 从元素属性中提取候选用户信息
-		// 支持两种格式：properties (字符串) 和 assignmentDefinition (数组)
+	private extractCandidateUsers(element: ElementLike): string[] | undefined {
 		if (
 			element.assignmentDefinition &&
 			element.assignmentDefinition.candidateUsers
@@ -104,9 +100,7 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	/**
 	 * 从元素中提取候选组
 	 */
-	private extractCandidateGroups(element: any): string[] | undefined {
-		// 从元素属性中提取候选组信息
-		// 支持两种格式：properties (字符串) 和 assignmentDefinition (数组)
+	private extractCandidateGroups(element: ElementLike): string[] | undefined {
 		if (
 			element.assignmentDefinition &&
 			element.assignmentDefinition.candidateGroups
@@ -124,8 +118,7 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	/**
 	 * 从元素中提取优先级
 	 */
-	private extractPriority(element: any): number | undefined {
-		// 支持多种格式：直接 priority 属性、properties.priority、assignmentDefinition.priority
+	private extractPriority(element: ElementLike): number | undefined {
 		if (element.priority !== undefined) {
 			return element.priority;
 		}

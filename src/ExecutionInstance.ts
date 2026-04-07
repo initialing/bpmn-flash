@@ -211,31 +211,31 @@ class ExecutionInstance {
 		}
 
 		switch (element.type) {
-			case 'bpmn:startEvent':
-			case 'bpmn:endEvent':
-				await this.executeEvent(element, token);
-				break;
+		case 'bpmn:startEvent':
+		case 'bpmn:endEvent':
+			await this.executeEvent(element, token);
+			break;
 
-			case 'bpmn:userTask':
-				await this.executeUserTask(element, token);
-				break;
+		case 'bpmn:userTask':
+			await this.executeUserTask(element, token);
+			break;
 
-			case 'bpmn:serviceTask':
-				await this.executeServiceTask(element, token);
-				break;
+		case 'bpmn:serviceTask':
+			await this.executeServiceTask(element, token);
+			break;
 
-			case 'bpmn:scriptTask':
-				await this.executeScriptTask(element, token);
-				break;
+		case 'bpmn:scriptTask':
+			await this.executeScriptTask(element, token);
+			break;
 
-			case 'bpmn:exclusiveGateway':
-			case 'bpmn:ExclusiveGateway':
-				await this.executeExclusiveGateway(element, token);
-				break;
+		case 'bpmn:exclusiveGateway':
+		case 'bpmn:ExclusiveGateway':
+			await this.executeExclusiveGateway(element, token);
+			break;
 
-			default:
-				// 默认继续执行后续流程
-				await this.continueFlow(element, token);
+		default:
+			// 默认继续执行后续流程
+			await this.continueFlow(element, token);
 		}
 	}
 

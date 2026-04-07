@@ -1,5 +1,6 @@
 import { ProcessState } from '../state/WorkflowState.js';
 import { BaseNodeExecutor } from './NodeExecutor.js';
+import { ElementLike, TokenLike } from '../types/index.js';
 
 /**
  * 开始事件执行器
@@ -23,8 +24,8 @@ export class StartEventExecutor extends BaseNodeExecutor {
 	 */
 	async execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState> {
 		// 记录开始事件执行历史
 		let newState = this.addHistoryEntry(state, element, 'start', {
@@ -63,13 +64,16 @@ export class StartEventExecutor extends BaseNodeExecutor {
 	}
 
 	/**
-	 * 获取下一个元素ID列表
+	 * 获取下一个元素 ID 列表
 	 */
-	private getNextElementIds(element: any, state: ProcessState): string[] {
+	private getNextElementIds(
+		element: ElementLike,
+		state: ProcessState
+	): string[] {
 		// 这里需要访问流程定义来获取下一个元素
 		// 由于当前状态中没有流程定义的引用，我们暂时返回空数组
-		// 在完整实现中，这里会查找当前元素的outgoing sequence flows
-		// 并返回对应的target elements
+		// 在完整实现中，这里会查找当前元素的 outgoing sequence flows
+		// 并返回对应的 target elements
 		return element.outgoing || [];
 	}
 }

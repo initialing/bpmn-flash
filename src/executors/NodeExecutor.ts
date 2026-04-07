@@ -1,4 +1,6 @@
 import { ProcessState } from '../state/WorkflowState.js';
+import { ElementLike, TokenLike } from '../types/index.js';
+import { Item } from '../types/index.js';
 
 /**
  * 节点执行器接口
@@ -14,8 +16,8 @@ export interface NodeExecutor {
 	 */
 	execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState>;
 
 	/**
@@ -42,8 +44,8 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
 	 */
 	abstract execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState>;
 
 	/**
@@ -59,7 +61,7 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
 	}
 
 	/**
-	 * 生成唯一ID
+	 * 生成唯一 ID
 	 */
 	protected generateId(): string {
 		return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -68,13 +70,13 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
 	/**
 	 * 创建任务项
 	 */
-	protected createTaskItem(element: any, token: any): any {
+	protected createTaskItem(element: ElementLike, token: TokenLike): Item {
 		return {
 			id: this.generateId(),
 			elementId: element.id,
-			name: element.name,
+			name: element.name || '',
 			type: element.type,
-			status: 'wait', // 默认为等待状态
+			status: 'wait',
 			data: { ...token.data },
 			startedAt: new Date(),
 			assignee: null,
@@ -86,7 +88,10 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
 	/**
 	 * 创建新的令牌
 	 */
-	protected createToken(elementId: string, data: any): any {
+	protected createToken(
+		elementId: string,
+		data: Record<string, any>
+	): TokenLike {
 		return {
 			id: this.generateId(),
 			elementId,
@@ -100,15 +105,15 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
 	 */
 	protected addHistoryEntry(
 		state: ProcessState,
-		element: any,
+		element: ElementLike,
 		action: string,
-		data?: any
+		data?: Record<string, any>
 	): ProcessState {
 		const historyEntry = {
 			id: this.generateId(),
 			elementId: element.id,
 			elementType: element.type,
-			action,
+			action: action as 'start' | 'complete' | 'transition' | 'error',
 			timestamp: new Date(),
 			data,
 		};

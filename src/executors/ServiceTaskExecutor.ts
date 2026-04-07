@@ -1,6 +1,6 @@
 import { ProcessState } from '../state/WorkflowState.js';
 import { BaseNodeExecutor } from './NodeExecutor.js';
-import { evaluateExpression } from '../utils/ExpressionEvaluator.js';
+import { ElementLike, TokenLike } from '../types/index.js';
 
 /**
  * 服务任务执行器
@@ -19,8 +19,8 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 	 */
 	async execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState> {
 		// 记录服务任务执行历史
 		let newState = this.addHistoryEntry(state, element, 'start', {
@@ -82,53 +82,43 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 	 * 执行具体的服务任务
 	 */
 	private async executeServiceTask(
-		element: any,
-		inputData: any
-	): Promise<any> {
-		// 这里应该是实际的服务任务执行逻辑
-		// 在当前实现中，我们提供一个模拟执行
-		// 在真实场景中，这里会调用外部服务或执行具体业务逻辑
-
-		// 从元素中获取服务任务的实现信息
+		element: ElementLike,
+		inputData: Record<string, any>
+	): Promise<Record<string, any>> {
 		const implementation =
 			element.properties?.implementation || element.properties?.class;
 
 		if (implementation) {
-			// 如果指定了具体实现，可以根据实现类型执行不同的逻辑
 			switch (implementation) {
-				case 'http-service':
-					return this.executeHttpService(element, inputData);
-				case 'email-service':
-					return this.executeEmailService(element, inputData);
-				case 'script':
-					return this.executeScriptService(element, inputData);
-				default:
-					// 默认情况下，模拟执行并返回输入数据
-					return new Promise(resolve => {
-						setTimeout(() => {
-							resolve(inputData);
-						}, 100); // 模拟异步执行
-					});
+			case 'http-service':
+				return this.executeHttpService(element, inputData);
+			case 'email-service':
+				return this.executeEmailService(element, inputData);
+			case 'script':
+				return this.executeScriptService(element, inputData);
+			default:
+				return new Promise(resolve => {
+					setTimeout(() => {
+						resolve(inputData);
+					}, 100);
+				});
 			}
 		} else {
-			// 没有指定实现，直接返回输入数据
 			return new Promise(resolve => {
 				setTimeout(() => {
 					resolve(inputData);
-				}, 100); // 模拟异步执行
+				}, 100);
 			});
 		}
 	}
 
 	/**
-	 * 执行HTTP服务
+	 * 执行 HTTP 服务
 	 */
 	private async executeHttpService(
-		element: any,
-		inputData: any
-	): Promise<any> {
-		// 这里应该执行HTTP请求
-		// 模拟实现
+		element: ElementLike,
+		inputData: Record<string, any>
+	): Promise<Record<string, any>> {
 		console.log(`Executing HTTP service for element ${element.id}`);
 		return { ...inputData, httpResult: 'success' };
 	}
@@ -137,11 +127,9 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 	 * 执行邮件服务
 	 */
 	private async executeEmailService(
-		element: any,
-		inputData: any
-	): Promise<any> {
-		// 这里应该发送邮件
-		// 模拟实现
+		element: ElementLike,
+		inputData: Record<string, any>
+	): Promise<Record<string, any>> {
 		console.log(`Sending email for element ${element.id}`);
 		return { ...inputData, emailSent: true };
 	}
@@ -150,14 +138,11 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 	 * 执行脚本服务
 	 */
 	private async executeScriptService(
-		element: any,
-		inputData: any
-	): Promise<any> {
-		// 这里应该执行嵌入的脚本
-		// 注意：在实际实现中，这需要安全的沙箱环境
+		element: ElementLike,
+		inputData: Record<string, any>
+	): Promise<Record<string, any>> {
 		const script = element.properties?.script;
 		if (script) {
-			// 模拟脚本执行
 			console.log(`Executing script for element ${element.id}`);
 			return { ...inputData, scriptResult: 'executed' };
 		}
@@ -169,18 +154,14 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 	 */
 	private continueToNextElements(
 		state: ProcessState,
-		element: any,
-		outputData: any
+		element: ElementLike,
+		outputData: Record<string, any>
 	): ProcessState {
-		// 获取后续元素ID（从流程定义中获取outgoing sequence flows）
 		const nextElementIds = element.outgoing || [];
-
-		// 为每个后续元素创建新的令牌
 		const newTokens = nextElementIds.map(elementId =>
 			this.createToken(elementId, outputData)
 		);
 
-		// 添加新令牌到状态
 		return {
 			...state,
 			tokens: [...state.tokens, ...newTokens],

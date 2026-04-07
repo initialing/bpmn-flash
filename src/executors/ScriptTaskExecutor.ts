@@ -1,13 +1,14 @@
 import { ProcessState } from '../state/WorkflowState.js';
 import { BaseNodeExecutor } from './NodeExecutor.js';
 import { evaluateExpressionResult } from '../utils/ExpressionEvaluator.js';
+import { ElementLike, TokenLike } from '../types/index.js';
 
 /**
  * 脚本任务执行结果
  */
 interface ScriptExecutionResult {
 	success: boolean;
-	value?: any;
+	value?: Record<string, any>;
 	error?: string;
 }
 
@@ -29,28 +30,24 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 	 */
 	async execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState> {
-		// 记录脚本任务执行历史
 		let newState = this.addHistoryEntry(state, element, 'start', {
 			tokenId: token.id,
 			elementId: element.id,
 		});
 
 		try {
-			// 执行脚本
 			const result = await this.executeScript(element, token.data);
 
 			if (result.success) {
-				// 记录执行成功
 				newState = this.addHistoryEntry(newState, element, 'complete', {
 					tokenId: token.id,
 					elementId: element.id,
 					result: result.value,
 				});
 
-				// 更新流程数据（如果脚本返回了新数据）
 				if (result.value && typeof result.value === 'object') {
 					newState = {
 						...newState,
@@ -58,7 +55,6 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 					};
 				}
 			} else {
-				// 记录执行错误
 				newState = this.addHistoryEntry(newState, element, 'error', {
 					tokenId: token.id,
 					elementId: element.id,
@@ -66,13 +62,11 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 				});
 			}
 
-			// 移除当前令牌
 			newState = {
 				...newState,
 				tokens: newState.tokens.filter(t => t.id !== token.id),
 			};
 
-			// 继续执行后续节点
 			const outputData = result.success
 				? { ...token.data, ...result.value }
 				: token.data;
@@ -85,14 +79,12 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 
 			return newState;
 		} catch (error) {
-			// 记录错误
 			newState = this.addHistoryEntry(newState, element, 'error', {
 				tokenId: token.id,
 				elementId: element.id,
 				error: error instanceof Error ? error.message : String(error),
 			});
 
-			// 移除当前令牌
 			newState = {
 				...newState,
 				tokens: newState.tokens.filter(t => t.id !== token.id),
@@ -104,15 +96,11 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 
 	/**
 	 * 执行具体的脚本
-	 * @param element 脚本任务元素
-	 * @param inputData 输入数据
-	 * @returns 执行结果
 	 */
 	private async executeScript(
-		element: any,
-		inputData: any
+		element: ElementLike,
+		inputData: Record<string, any>
 	): Promise<ScriptExecutionResult> {
-		// 从元素中获取脚本信息
 		const script = element.properties?.script;
 		const scriptLanguage =
 			element.properties?.scriptLanguage || 'javascript';
@@ -125,18 +113,17 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 		}
 
 		try {
-			// 根据脚本语言选择执行方式
 			switch (scriptLanguage.toLowerCase()) {
-				case 'javascript':
-				case 'js':
-					return this.executeJavaScript(script, inputData);
-				case 'expression':
-					return this.executeExpression(script, inputData);
-				default:
-					return {
-						success: false,
-						error: `不支持的脚本语言：${scriptLanguage}`,
-					};
+			case 'javascript':
+			case 'js':
+				return this.executeJavaScript(script, inputData);
+			case 'expression':
+				return this.executeExpression(script, inputData);
+			default:
+				return {
+					success: false,
+					error: `不支持的脚本语言：${scriptLanguage}`,
+				};
 			}
 		} catch (error) {
 			return {
@@ -148,16 +135,11 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 
 	/**
 	 * 执行 JavaScript 脚本（安全模式）
-	 * 使用表达式求值器替代 eval，确保安全性
-	 * @param script 脚本内容
-	 * @param inputData 输入数据
-	 * @returns 执行结果
 	 */
 	private executeJavaScript(
 		script: string,
-		inputData: any
+		inputData: Record<string, any>
 	): ScriptExecutionResult {
-		// 安全检查：检测不安全的关键字
 		const unsafeKeywords = [
 			'eval',
 			'Function',
@@ -185,8 +167,6 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 		}
 
 		try {
-			// 尝试将脚本作为表达式求值
-			// 支持多行脚本，最后一行作为返回值
 			const lines = script
 				.trim()
 				.split('\n')
@@ -199,7 +179,6 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 				};
 			}
 
-			// 如果只有一行，直接作为表达式求值
 			if (lines.length === 1) {
 				const result = evaluateExpressionResult(lines[0], inputData);
 				return {
@@ -209,7 +188,6 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 				};
 			}
 
-			// 多行脚本：执行前面的语句，最后一行作为返回值
 			const context = { ...inputData };
 			let lastResult: any;
 
@@ -217,7 +195,6 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 				const line = lines[i];
 				const isLastLine = i === lines.length - 1;
 
-				// 处理变量赋值语句
 				const assignmentMatch = line.match(
 					/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/
 				);
@@ -236,7 +213,6 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 					context[varName] = result.value;
 					lastResult = result.value;
 				} else if (isLastLine) {
-					// 最后一行作为返回值
 					const result = evaluateExpressionResult(line, context);
 					if (!result.success) {
 						return {
@@ -246,7 +222,6 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 					}
 					lastResult = result.value;
 				} else {
-					// 其他语句作为表达式执行
 					const result = evaluateExpressionResult(line, context);
 					if (!result.success) {
 						return {
@@ -272,13 +247,10 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 
 	/**
 	 * 执行简单表达式
-	 * @param expression 表达式字符串
-	 * @param inputData 输入数据
-	 * @returns 执行结果
 	 */
 	private executeExpression(
 		expression: string,
-		inputData: any
+		inputData: Record<string, any>
 	): ScriptExecutionResult {
 		const result = evaluateExpressionResult(expression, inputData);
 		return {
@@ -290,25 +262,17 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 
 	/**
 	 * 继续执行后续节点
-	 * @param state 当前流程状态
-	 * @param element 当前元素
-	 * @param outputData 输出数据
-	 * @returns 新的流程状态
 	 */
 	private continueToNextElements(
 		state: ProcessState,
-		element: any,
-		outputData: any
+		element: ElementLike,
+		outputData: Record<string, any>
 	): ProcessState {
-		// 获取后续元素 ID（从流程定义中获取 outgoing sequence flows）
 		const nextElementIds = element.outgoing || [];
-
-		// 为每个后续元素创建新的令牌
 		const newTokens = nextElementIds.map(elementId =>
 			this.createToken(elementId, outputData)
 		);
 
-		// 添加新令牌到状态
 		return {
 			...state,
 			tokens: [...state.tokens, ...newTokens],

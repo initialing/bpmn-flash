@@ -1,5 +1,6 @@
 import { ProcessState } from '../state/WorkflowState.js';
 import { BaseNodeExecutor } from './NodeExecutor.js';
+import { ElementLike, TokenLike } from '../types/index.js';
 
 /**
  * 结束事件执行器
@@ -23,8 +24,8 @@ export class EndEventExecutor extends BaseNodeExecutor {
 	 */
 	async execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState> {
 		// 记录结束事件执行历史
 		let newState = this.addHistoryEntry(state, element, 'complete', {

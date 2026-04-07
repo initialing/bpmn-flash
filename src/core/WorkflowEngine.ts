@@ -1,17 +1,19 @@
-import { ProcessDefinition } from '../types/index.js';
+import { ProcessDefinition, ElementLike, TokenLike } from '../types/index.js';
 import {
 	ProcessState,
 	ExecutionResult,
 	StateAction,
+	ProcessEvent,
 } from '../state/WorkflowState.js';
 import { ExecutionEngine } from './ExecutionEngine.js';
 import { TransitionEngine } from './TransitionEngine.js';
 import BPMNParser from '../parser/BPMNParser.js';
 import ExecutionInstance from '../ExecutionInstance.js';
+import { Item } from '../types/index.js';
 
 /**
  * 主流程引擎
- * 负责协调各个子引擎，提供高层API
+ * 负责协调各个子引擎，提供高层 API
  */
 export class WorkflowEngine {
 	private executionEngine: ExecutionEngine;
@@ -145,7 +147,7 @@ export class WorkflowEngine {
 	 */
 	getState(processId: string): ProcessState | null {
 		// 在实际实现中，这里会从存储中获取状态
-		// 当前为简化实现，返回null
+		// 当前为简化实现，返回 null
 		return null;
 	}
 
@@ -154,7 +156,7 @@ export class WorkflowEngine {
 	 * @param state 流程状态（由应用层提供）
 	 * @returns 待办任务列表
 	 */
-	getTasks(state: ProcessState): any[] {
+	getTasks(state: ProcessState): Item[] {
 		// 从状态中提取等待中的任务
 		return state.items.filter(item => item.status === 'wait');
 	}
@@ -183,8 +185,8 @@ export class WorkflowEngine {
 	/**
 	 * 初始化令牌，从开始事件开始
 	 */
-	private initializeTokens(definition: ProcessDefinition): any[] {
-		const tokens = [];
+	private initializeTokens(definition: ProcessDefinition): TokenLike[] {
+		const tokens: TokenLike[] = [];
 
 		// 查找开始事件并创建初始令牌
 		for (const [elementId, element] of definition.elements) {
@@ -205,8 +207,8 @@ export class WorkflowEngine {
 	/**
 	 * 生成当前状态下的任务
 	 */
-	private generateTasks(state: ProcessState): any[] {
-		// 这里应该调用TaskGenerator来生成任务
+	private generateTasks(state: ProcessState): Item[] {
+		// 这里应该调用 TaskGenerator 来生成任务
 		// 为简化先返回空数组
 		return [];
 	}
@@ -218,8 +220,8 @@ export class WorkflowEngine {
 		oldState: ProcessState,
 		newState: ProcessState,
 		action: StateAction
-	): any[] {
-		const events = [];
+	): ProcessEvent[] {
+		const events: ProcessEvent[] = [];
 
 		// 根据状态变化生成相应事件
 		if (oldState.status === 'created' && newState.status === 'running') {
@@ -242,7 +244,7 @@ export class WorkflowEngine {
 	}
 
 	/**
-	 * 生成唯一ID
+	 * 生成唯一 ID
 	 */
 	private generateId(): string {
 		return Date.now().toString(36) + Math.random().toString(36).substr(2);

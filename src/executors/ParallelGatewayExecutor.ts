@@ -1,9 +1,10 @@
 import { ProcessState } from '../state/WorkflowState.js';
 import { BaseNodeExecutor } from './NodeExecutor.js';
+import { ElementLike, TokenLike } from '../types/index.js';
 
 /**
  * 并行网关执行器
- * 处理并行网关节点（AND网关）
+ * 处理并行网关节点（AND 网关）
  */
 export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	/**
@@ -18,28 +19,23 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	 */
 	async execute(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): Promise<ProcessState> {
-		// 记录网关执行历史
 		let newState = this.addHistoryEntry(state, element, 'transition', {
 			tokenId: token.id,
 			elementId: element.id,
 		});
 
 		try {
-			// 获取入口令牌数量（到达此并行网关的所有令牌）
 			const incomingTokens = this.getIncomingTokensForGateway(
 				newState,
 				element
 			);
 
-			// 获取出口顺序流数量
 			const outgoingFlows = element.outgoing || [];
 
-			// 对于并行汇聚网关（多个入口，一个出口）
 			if (incomingTokens.length > 1 && outgoingFlows.length === 1) {
-				// 等待所有入口令牌到达
 				const allTokensForThisGateway = incomingTokens.filter(t =>
 					this.isTokenForThisGateway(t, element)
 				);
@@ -48,34 +44,28 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 					allTokensForThisGateway.length >=
 					this.getIncomingFlowCount(element)
 				) {
-					// 所有令牌都到达了，可以继续执行
 					return this.handleParallelJoin(newState, element, token);
 				} else {
-					// 还有令牌未到达，移除当前令牌（因为它会被其他到达的令牌处理）
 					return {
 						...newState,
 						tokens: newState.tokens.filter(t => t.id !== token.id),
 					};
 				}
-			}
-			// 对于并行分裂网关（一个入口，多个出口）
-			else if (incomingTokens.length === 1 && outgoingFlows.length > 1) {
-				// 创建多个令牌，每个出口一个
+			} else if (
+				incomingTokens.length === 1 &&
+				outgoingFlows.length > 1
+			) {
 				return this.handleParallelSplit(newState, element, token);
-			}
-			// 一般情况，按顺序流处理
-			else {
+			} else {
 				return this.handleNormalTransition(newState, element, token);
 			}
 		} catch (error) {
-			// 记录错误
 			newState = this.addHistoryEntry(newState, element, 'error', {
 				tokenId: token.id,
 				elementId: element.id,
 				error: error instanceof Error ? error.message : String(error),
 			});
 
-			// 移除当前令牌
 			return {
 				...newState,
 				tokens: newState.tokens.filter(t => t.id !== token.id),
@@ -88,21 +78,18 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	 */
 	private handleParallelSplit(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): ProcessState {
-		// 获取所有出口顺序流
 		const outgoingFlows = element.outgoing || [];
 
-		// 为每个出口创建一个令牌
 		const newTokens = outgoingFlows
 			.map(flowId => {
 				const nextElementId = this.getNextElementId(element, flowId);
 				return this.createToken(nextElementId, token.data);
 			})
-			.filter(token => token.elementId); // 过滤掉无效的令牌
+			.filter(token => token.elementId);
 
-		// 更新状态：移除当前令牌，添加新令牌
 		return {
 			...state,
 			tokens: [
@@ -117,15 +104,13 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	 */
 	private handleParallelJoin(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): ProcessState {
-		// 获取所有属于此网关的令牌
 		const tokensForThisGateway = state.tokens.filter(t =>
 			this.isTokenFromIncomingPaths(t, element)
 		);
 
-		// 移除所有这些令牌
 		const remainingTokens = state.tokens.filter(
 			t =>
 				!tokensForThisGateway.some(
@@ -133,16 +118,14 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 				)
 		);
 
-		// 创建一个新令牌继续执行
 		const outgoingFlows = element.outgoing || [];
 		const newTokens = outgoingFlows
 			.map(flowId => {
 				const nextElementId = this.getNextElementId(element, flowId);
 				return this.createToken(nextElementId, token.data);
 			})
-			.filter(token => token.elementId); // 过滤掉无效的令牌
+			.filter(token => token.elementId);
 
-		// 更新状态
 		return {
 			...state,
 			tokens: [...remainingTokens, ...newTokens],
@@ -154,29 +137,25 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	 */
 	private handleNormalTransition(
 		state: ProcessState,
-		element: any,
-		token: any
+		element: ElementLike,
+		token: TokenLike
 	): ProcessState {
-		// 获取出口顺序流
 		const outgoingFlows = element.outgoing || [];
 
 		if (outgoingFlows.length === 0) {
-			// 没有出口，移除令牌
 			return {
 				...state,
 				tokens: state.tokens.filter(t => t.id !== token.id),
 			};
 		}
 
-		// 为每个出口创建令牌
 		const newTokens = outgoingFlows
 			.map(flowId => {
 				const nextElementId = this.getNextElementId(element, flowId);
 				return this.createToken(nextElementId, token.data);
 			})
-			.filter(token => token.elementId); // 过滤掉无效的令牌
+			.filter(token => token.elementId);
 
-		// 更新状态：移除当前令牌，添加新令牌
 		return {
 			...state,
 			tokens: [
@@ -191,44 +170,45 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	 */
 	private getIncomingTokensForGateway(
 		state: ProcessState,
-		element: any
-	): any[] {
-		// 简化实现：返回所有令牌
-		// 在完整实现中，需要根据流程定义确定哪些令牌应该到达此网关
+		element: ElementLike
+	): TokenLike[] {
 		return state.tokens;
 	}
 
 	/**
 	 * 检查令牌是否属于此网关
 	 */
-	private isTokenForThisGateway(token: any, element: any): boolean {
-		// 简化实现：假设所有令牌都可能与此网关相关
-		// 在完整实现中，需要根据流程路径判断
+	private isTokenForThisGateway(
+		token: TokenLike,
+		element: ElementLike
+	): boolean {
 		return true;
 	}
 
 	/**
 	 * 检查令牌是否来自入口路径
 	 */
-	private isTokenFromIncomingPaths(token: any, element: any): boolean {
-		// 简化实现：假设令牌来自入口路径
-		// 在完整实现中，需要根据流程路径判断
+	private isTokenFromIncomingPaths(
+		token: TokenLike,
+		element: ElementLike
+	): boolean {
 		return true;
 	}
 
 	/**
 	 * 获取入口顺序流数量
 	 */
-	private getIncomingFlowCount(element: any): number {
-		// 简化实现：返回1
-		// 在完整实现中，需要从流程定义中获取入口流的数量
+	private getIncomingFlowCount(element: ElementLike): number {
 		return 1;
 	}
 
 	/**
-	 * 获取下一个元素ID
+	 * 获取下一个元素 ID
 	 */
-	private getNextElementId(element: any, flowId: string): string | null {
+	private getNextElementId(
+		element: ElementLike,
+		flowId: string
+	): string | null {
 		return flowId || null;
 	}
 }

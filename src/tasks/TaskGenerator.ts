@@ -112,14 +112,14 @@ export class TaskComputer {
 		// 基于任务类型和流程状态计算优先级
 		// 简单实现：紧急任务优先级最高，普通任务按创建时间排序
 		switch (task.type) {
-			case 'bpmn:startEvent':
-				return 100; // 最高优先级
-			case 'bpmn:userTask':
-				return 50;
-			case 'bpmn:endEvent':
-				return 10; // 较低优先级
-			default:
-				return 30;
+		case 'bpmn:startEvent':
+			return 100; // 最高优先级
+		case 'bpmn:userTask':
+			return 50;
+		case 'bpmn:endEvent':
+			return 10; // 较低优先级
+		default:
+			return 30;
 		}
 	}
 

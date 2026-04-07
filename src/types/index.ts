@@ -43,7 +43,7 @@ export interface SequenceFlow {
 export interface VariableDefinition {
 	name: string;
 	type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-	defaultValue?: any;
+	defaultValue?: unknown;
 	required?: boolean;
 }
 
@@ -63,9 +63,11 @@ export interface Item {
 	data: Record<string, any>;
 	startedAt: Date;
 	endedAt?: Date;
-	assignee?: string;
-	candidateUsers?: string[];
-	candidateGroups?: string[];
+	assignee?: string | null;
+	candidateUsers?: string[] | null;
+	candidateGroups?: string[] | null;
+	priority?: number;
+	createdAt?: Date;
 }
 
 export interface ParsedXmlElement {
@@ -90,12 +92,12 @@ export interface CheckExecutionError {
 export interface ExpressionContext {
 	variables: Record<string, any>;
 	element?: Element;
-	instance?: any; // ExecutionInstance type to be defined later
+	instance?: unknown;
 }
 
 export interface EvaluationResult {
 	success: boolean;
-	value?: any;
+	value?: unknown;
 	error?: string;
 }
 
@@ -119,4 +121,41 @@ export interface Message {
 export interface Signal {
 	id: string;
 	name: string;
+}
+
+/**
+ * 通用元素接口 - 替代 any 用于元素类型
+ */
+export interface ElementLike {
+	id: string;
+	type: string;
+	name?: string;
+	incoming?: string[];
+	outgoing?: string[];
+	properties?: Record<string, any>;
+	[key: string]: any;
+}
+
+/**
+ * 通用令牌接口 - 替代 any 用于令牌类型
+ */
+export interface TokenLike {
+	id: string;
+	elementId: string;
+	data: Record<string, any>;
+	createdAt?: Date;
+	[key: string]: any;
+}
+
+/**
+ * 通用流程接口 - 替代 any 用于 SequenceFlow 类型
+ */
+export interface SequenceFlowLike {
+	id: string;
+	sourceRef: string;
+	targetRef: string;
+	conditionExpression?: string | null;
+	conditionType?: 'expression' | 'script';
+	default?: boolean;
+	[key: string]: any;
 }
