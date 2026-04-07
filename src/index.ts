@@ -2,6 +2,7 @@
 export { WorkflowEngine } from './core/WorkflowEngine.js';
 export { ExecutionEngine } from './core/ExecutionEngine.js';
 export { TransitionEngine } from './core/TransitionEngine.js';
+export { ExecutionInstance } from './ExecutionInstance.js';
 
 // 状态管理
 export { WorkflowState } from './state/WorkflowState.js';

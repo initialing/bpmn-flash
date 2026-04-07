@@ -6,6 +6,8 @@ import {
 } from '../state/WorkflowState.js';
 import { ExecutionEngine } from './ExecutionEngine.js';
 import { TransitionEngine } from './TransitionEngine.js';
+import BPMNParser from '../parser/BPMNParser.js';
+import ExecutionInstance from '../ExecutionInstance.js';
 
 /**
  * 主流程引擎
@@ -244,5 +246,86 @@ export class WorkflowEngine {
 	 */
 	private generateId(): string {
 		return Date.now().toString(36) + Math.random().toString(36).substr(2);
+	}
+
+	/**
+	 * 从 BPMN XML 启动流程（便捷方法）
+	 */
+	async startFromXml(
+		bpmnXml: string,
+		instanceId: string,
+		variables?: Record<string, any>
+	): Promise<ProcessState> {
+		const definition = BPMNParser.parse(bpmnXml);
+		return this.startProcess(instanceId, variables);
+	}
+
+	/**
+	 * 启动流程实例
+	 */
+	startProcess(
+		instanceId: string,
+		variables?: Record<string, any>
+	): ProcessState {
+		// 使用现有的 startProcess 实现
+		throw new Error('startProcess 方法需要传入 ProcessDefinition 参数');
+	}
+
+	/**
+	 * 执行动作/完成任务
+	 */
+	async executeAction(
+		instanceId: string,
+		nodeId: string,
+		context?: Record<string, any>
+	): Promise<ExecutionResult> {
+		// 实现执行逻辑
+		throw new Error('executeAction 方法待实现');
+	}
+
+	/**
+	 * 分配任务给用户
+	 */
+	assign(
+		instanceId: string,
+		nodeId: string,
+		assignee?: string,
+		candidateUsers?: string[],
+		candidateGroups?: string[]
+	): void {
+		// 实现分配逻辑
+		throw new Error('assign 方法待实现');
+	}
+
+	/**
+	 * 获取流程实例
+	 */
+	get(instanceId: string): ProcessState | null {
+		// 返回实例状态
+		return null; // 暂时返回 null，实际应用层实现存储
+	}
+
+	/**
+	 * 重启流程实例
+	 */
+	restart(
+		instanceId: string,
+		fromNodeId?: string,
+		variables?: Record<string, any>
+	): ProcessState {
+		// 实现重启逻辑
+		throw new Error('restart 方法待实现');
+	}
+
+	/**
+	 * 升级流程实例
+	 */
+	upgrade(
+		instanceId: string,
+		newBpmnXml: string,
+		migrateData?: boolean
+	): ProcessState {
+		// 实现升级逻辑
+		throw new Error('upgrade 方法待实现');
 	}
 }
