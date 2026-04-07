@@ -40,7 +40,10 @@ export class ExecutionEngine {
 	 * @param state 流程状态
 	 * @param definition 流程定义（从 XML 解析得到）
 	 */
-	execute(state: ProcessState, definition: ProcessDefinition): ProcessState {
+	async execute(
+		state: ProcessState,
+		definition: ProcessDefinition
+	): Promise<ProcessState> {
 		// 执行所有活跃令牌，直到没有更多可执行的令牌
 		let currentState = { ...state };
 		let hasChanges = true;
@@ -60,7 +63,11 @@ export class ExecutionEngine {
 					const token = newTokens[i];
 
 					// 尝试执行这个令牌
-					const result = this.executeToken(currentState, token);
+					const result = await this.executeToken(
+						currentState,
+						token,
+						definition
+					);
 
 					if (result.success) {
 						// 更新状态
@@ -101,11 +108,11 @@ export class ExecutionEngine {
 	/**
 	 * 执行单个令牌
 	 */
-	private executeToken(
+	private async executeToken(
 		state: ProcessState,
 		token: any,
 		definition: ProcessDefinition
-	): ExecutionResult {
+	): Promise<ExecutionResult> {
 		try {
 			// 从定义中获取元素
 			const element = definition.elements.get(token.elementId);
@@ -133,7 +140,7 @@ export class ExecutionEngine {
 			}
 
 			// 执行节点
-			const newState = executor.execute(state, element, token);
+			const newState = await executor.execute(state, element, token);
 			const tasks = this.generateTasks(newState);
 			const events = this.generateEvents(state, newState, element);
 
@@ -157,16 +164,16 @@ export class ExecutionEngine {
 	/**
 	 * 处理特定元素
 	 */
-	processElement(
+	async processElement(
 		state: ProcessState,
 		element: any,
 		token: any
-	): ProcessState {
+	): Promise<ProcessState> {
 		// 查找适合处理此元素类型的执行器
 		const executor = this.findExecutor(element.type);
 
 		if (executor) {
-			return executor.execute(state, element, token);
+			return await executor.execute(state, element, token);
 		} else {
 			// 如果没有找到合适的执行器，记录错误并返回原状态
 			console.warn(`No executor found for element type: ${element.type}`);
@@ -184,8 +191,8 @@ export class ExecutionEngine {
 	/**
 	 * 继续执行流程（处理后续令牌）
 	 */
-	continueExecution(state: ProcessState): ProcessState {
-		return this.execute(state);
+	async continueExecution(state: ProcessState): Promise<ProcessState> {
+		return await this.execute(state);
 	}
 
 	/**

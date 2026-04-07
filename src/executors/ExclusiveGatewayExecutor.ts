@@ -17,7 +17,11 @@ export class ExclusiveGatewayExecutor extends BaseNodeExecutor {
 	/**
 	 * 执行排他网关
 	 */
-	execute(state: ProcessState, element: any, token: any): ProcessState {
+	async execute(
+		state: ProcessState,
+		element: any,
+		token: any
+	): Promise<ProcessState> {
 		// 记录网关执行历史
 		let newState = this.addHistoryEntry(state, element, 'transition', {
 			tokenId: token.id,
@@ -40,8 +44,18 @@ export class ExclusiveGatewayExecutor extends BaseNodeExecutor {
 			let defaultFlowId: string | null = null;
 
 			// 首先检查是否有默认顺序流
+			// 支持两种格式：element.properties.default 或 element.sequenceFlows[].default
 			if (element.properties && element.properties.default) {
 				defaultFlowId = element.properties.default;
+			}
+			// 检查 sequenceFlows 中是否有标记为 default 的流
+			if (!defaultFlowId && element.sequenceFlows) {
+				const defaultFlow = element.sequenceFlows.find(
+					(f: any) => f.default === true
+				);
+				if (defaultFlow) {
+					defaultFlowId = defaultFlow.id;
+				}
 			}
 
 			// 检查每个顺序流的条件
@@ -173,8 +187,7 @@ export class ExclusiveGatewayExecutor extends BaseNodeExecutor {
 	 * 获取下一个元素ID
 	 */
 	private getNextElementId(element: any, flowId: string): string | null {
-		// 获取顺序流的目标元素ID
-		const flow = this.getSequenceFlowById(element, flowId);
-		return flow ? flow.targetRef : null;
+		// 直接返回 flowId 作为下一个令牌的 elementId
+		return flowId || null;
 	}
 }

@@ -16,7 +16,11 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	/**
 	 * 执行用户任务
 	 */
-	execute(state: ProcessState, element: any, token: any): ProcessState {
+	async execute(
+		state: ProcessState,
+		element: any,
+		token: any
+	): Promise<ProcessState> {
 		// 记录用户任务执行历史
 		let newState = this.addHistoryEntry(state, element, 'start', {
 			tokenId: token.id,
@@ -29,12 +33,14 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 			elementId: element.id,
 			name: element.name || element.id,
 			type: element.type,
-			status: 'wait', // 用户任务默认为等待状态
+			status: 'waiting', // 用户任务默认为等待状态
 			data: { ...token.data },
 			startedAt: new Date(),
+			createdAt: new Date(),
 			assignee: this.extractAssignee(element),
 			candidateUsers: this.extractCandidateUsers(element),
 			candidateGroups: this.extractCandidateGroups(element),
+			priority: this.extractPriority(element),
 			endedAt: undefined,
 		};
 
@@ -62,9 +68,15 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	 */
 	private extractAssignee(element: any): string | undefined {
 		// 从元素属性中提取分配给特定用户的信息
-		// 这里简化处理，实际实现中会从bpmn:extensionElements中提取
+		// 支持两种格式：properties 和 assignmentDefinition
 		if (element.properties && element.properties.assignee) {
 			return element.properties.assignee;
+		}
+		if (
+			element.assignmentDefinition &&
+			element.assignmentDefinition.assignee
+		) {
+			return element.assignmentDefinition.assignee;
 		}
 		return undefined;
 	}
@@ -74,8 +86,17 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	 */
 	private extractCandidateUsers(element: any): string[] | undefined {
 		// 从元素属性中提取候选用户信息
+		// 支持两种格式：properties (字符串) 和 assignmentDefinition (数组)
+		if (
+			element.assignmentDefinition &&
+			element.assignmentDefinition.candidateUsers
+		) {
+			const users = element.assignmentDefinition.candidateUsers;
+			return Array.isArray(users) ? users : users.split(',');
+		}
 		if (element.properties && element.properties.candidateUsers) {
-			return element.properties.candidateUsers.split(',');
+			const users = element.properties.candidateUsers;
+			return Array.isArray(users) ? users : users.split(',');
 		}
 		return undefined;
 	}
@@ -85,8 +106,37 @@ export class UserTaskExecutor extends BaseNodeExecutor {
 	 */
 	private extractCandidateGroups(element: any): string[] | undefined {
 		// 从元素属性中提取候选组信息
+		// 支持两种格式：properties (字符串) 和 assignmentDefinition (数组)
+		if (
+			element.assignmentDefinition &&
+			element.assignmentDefinition.candidateGroups
+		) {
+			const groups = element.assignmentDefinition.candidateGroups;
+			return Array.isArray(groups) ? groups : groups.split(',');
+		}
 		if (element.properties && element.properties.candidateGroups) {
-			return element.properties.candidateGroups.split(',');
+			const groups = element.properties.candidateGroups;
+			return Array.isArray(groups) ? groups : groups.split(',');
+		}
+		return undefined;
+	}
+
+	/**
+	 * 从元素中提取优先级
+	 */
+	private extractPriority(element: any): number | undefined {
+		// 支持多种格式：直接 priority 属性、properties.priority、assignmentDefinition.priority
+		if (element.priority !== undefined) {
+			return element.priority;
+		}
+		if (element.properties && element.properties.priority !== undefined) {
+			return element.properties.priority;
+		}
+		if (
+			element.assignmentDefinition &&
+			element.assignmentDefinition.priority !== undefined
+		) {
+			return element.assignmentDefinition.priority;
 		}
 		return undefined;
 	}

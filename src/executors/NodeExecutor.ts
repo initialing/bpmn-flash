@@ -12,7 +12,11 @@ export interface NodeExecutor {
 	 * @param token 当前令牌
 	 * @returns 执行后的流程状态
 	 */
-	execute(state: ProcessState, element: any, token: any): ProcessState;
+	execute(
+		state: ProcessState,
+		element: any,
+		token: any
+	): Promise<ProcessState>;
 
 	/**
 	 * 获取此执行器支持的节点类型
@@ -40,7 +44,7 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
 		state: ProcessState,
 		element: any,
 		token: any
-	): ProcessState;
+	): Promise<ProcessState>;
 
 	/**
 	 * 获取此执行器支持的节点类型
@@ -111,7 +115,7 @@ export abstract class BaseNodeExecutor implements NodeExecutor {
 
 		return {
 			...state,
-			history: [...state.history, historyEntry],
+			history: [...(state.history || []), historyEntry],
 		};
 	}
 }

@@ -16,7 +16,11 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	/**
 	 * 执行并行网关
 	 */
-	execute(state: ProcessState, element: any, token: any): ProcessState {
+	async execute(
+		state: ProcessState,
+		element: any,
+		token: any
+	): Promise<ProcessState> {
 		// 记录网关执行历史
 		let newState = this.addHistoryEntry(state, element, 'transition', {
 			tokenId: token.id,
@@ -225,8 +229,6 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 	 * 获取下一个元素ID
 	 */
 	private getNextElementId(element: any, flowId: string): string | null {
-		// 这里需要从流程定义中获取目标元素ID
-		// 简化实现，返回基于flowId的模拟ID
-		return flowId.replace('flow', 'element');
+		return flowId || null;
 	}
 }

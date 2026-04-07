@@ -21,7 +21,11 @@ export class StartEventExecutor extends BaseNodeExecutor {
 	/**
 	 * 执行开始事件
 	 */
-	execute(state: ProcessState, element: any, token: any): ProcessState {
+	async execute(
+		state: ProcessState,
+		element: any,
+		token: any
+	): Promise<ProcessState> {
 		// 记录开始事件执行历史
 		let newState = this.addHistoryEntry(state, element, 'start', {
 			tokenId: token.id,
@@ -47,7 +51,7 @@ export class StartEventExecutor extends BaseNodeExecutor {
 		};
 
 		// 如果这是流程的第一个事件，更新流程状态
-		if (newState.status === 'created') {
+		if (newState.status === 'created' || newState.status === 'running') {
 			newState = {
 				...newState,
 				status: 'running',

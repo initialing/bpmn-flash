@@ -21,7 +21,11 @@ export class EndEventExecutor extends BaseNodeExecutor {
 	/**
 	 * 执行结束事件
 	 */
-	execute(state: ProcessState, element: any, token: any): ProcessState {
+	async execute(
+		state: ProcessState,
+		element: any,
+		token: any
+	): Promise<ProcessState> {
 		// 记录结束事件执行历史
 		let newState = this.addHistoryEntry(state, element, 'complete', {
 			tokenId: token.id,

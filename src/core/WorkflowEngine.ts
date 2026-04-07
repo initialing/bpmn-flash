@@ -25,10 +25,10 @@ export class WorkflowEngine {
 	/**
 	 * 启动一个新的流程实例
 	 */
-	startProcess(
+	async startProcess(
 		definition: ProcessDefinition,
 		initialData: Record<string, any> = {}
-	): ProcessState {
+	): Promise<ProcessState> {
 		// 创建初始状态
 		const initialState = this.createInitialState(definition, initialData);
 
@@ -51,7 +51,7 @@ export class WorkflowEngine {
 		);
 
 		// 执行初始令牌
-		return this.executionEngine.execute(updatedState);
+		return await this.executionEngine.execute(updatedState, definition);
 	}
 
 	/**
@@ -60,11 +60,11 @@ export class WorkflowEngine {
 	 * @param action 动作
 	 * @param bpmnXML BPMN XML 字符串（用于重新解析获取元素定义）
 	 */
-	executeAction(
+	async executeAction(
 		currentState: ProcessState,
 		action: StateAction,
 		bpmnXML: string
-	): ExecutionResult {
+	): Promise<ExecutionResult> {
 		try {
 			// 1. 重新解析 BPMN XML
 			const definition = BPMNParser.parse(bpmnXML);
@@ -83,7 +83,7 @@ export class WorkflowEngine {
 			);
 
 			// 4. 使用执行引擎处理状态变化（传入 definition）
-			const executedState = this.executionEngine.execute(
+			const executedState = await this.executionEngine.execute(
 				newState,
 				definition
 			);
@@ -257,75 +257,6 @@ export class WorkflowEngine {
 		variables?: Record<string, any>
 	): Promise<ProcessState> {
 		const definition = BPMNParser.parse(bpmnXml);
-		return this.startProcess(instanceId, variables);
-	}
-
-	/**
-	 * 启动流程实例
-	 */
-	startProcess(
-		instanceId: string,
-		variables?: Record<string, any>
-	): ProcessState {
-		// 使用现有的 startProcess 实现
-		throw new Error('startProcess 方法需要传入 ProcessDefinition 参数');
-	}
-
-	/**
-	 * 执行动作/完成任务
-	 */
-	async executeAction(
-		instanceId: string,
-		nodeId: string,
-		context?: Record<string, any>
-	): Promise<ExecutionResult> {
-		// 实现执行逻辑
-		throw new Error('executeAction 方法待实现');
-	}
-
-	/**
-	 * 分配任务给用户
-	 */
-	assign(
-		instanceId: string,
-		nodeId: string,
-		assignee?: string,
-		candidateUsers?: string[],
-		candidateGroups?: string[]
-	): void {
-		// 实现分配逻辑
-		throw new Error('assign 方法待实现');
-	}
-
-	/**
-	 * 获取流程实例
-	 */
-	get(instanceId: string): ProcessState | null {
-		// 返回实例状态
-		return null; // 暂时返回 null，实际应用层实现存储
-	}
-
-	/**
-	 * 重启流程实例
-	 */
-	restart(
-		instanceId: string,
-		fromNodeId?: string,
-		variables?: Record<string, any>
-	): ProcessState {
-		// 实现重启逻辑
-		throw new Error('restart 方法待实现');
-	}
-
-	/**
-	 * 升级流程实例
-	 */
-	upgrade(
-		instanceId: string,
-		newBpmnXml: string,
-		migrateData?: boolean
-	): ProcessState {
-		// 实现升级逻辑
-		throw new Error('upgrade 方法待实现');
+		return this.startProcess(definition, variables);
 	}
 }

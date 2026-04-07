@@ -20,12 +20,12 @@ describe('ExclusiveGatewayExecutor', () => {
     } as ProcessDefinition;
   });
 
-  it('应返回支持的元素类型', () => {
+  it('应返回支持的元素类型', async () => {
     const types = executor.getSupportedTypes();
     expect(types).toContain('bpmn:exclusiveGateway');
   });
 
-  it('应评估条件表达式并选择匹配的路径', () => {
+  it('应评估条件表达式并选择匹配的路径', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -55,13 +55,13 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow2');
   });
 
-  it('应选择默认路径当无条件匹配', () => {
+  it('应选择默认路径当无条件匹配', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -91,13 +91,13 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow3');
   });
 
-  it('应处理无条件表达式的路径', () => {
+  it('应处理无条件表达式的路径', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -120,13 +120,13 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow2');
   });
 
-  it('应移除输入令牌', () => {
+  it('应移除输入令牌', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -149,12 +149,12 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens.filter(t => t.elementId === 'gateway1')).toHaveLength(0);
   });
 
-  it('应处理复杂的条件表达式', () => {
+  it('应处理复杂的条件表达式', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -184,13 +184,13 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow2');
   });
 
-  it('应处理字符串比较', () => {
+  it('应处理字符串比较', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -220,13 +220,13 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow2');
   });
 
-  it('应处理多个外出路径但只选择一个', () => {
+  it('应处理多个外出路径但只选择一个', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -262,13 +262,13 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow3');
   });
 
-  it('应保持变量不变', () => {
+  it('应保持变量不变', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -291,12 +291,12 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.variables).toEqual({ test: 'value' });
   });
 
-  it('应处理空条件表达式', () => {
+  it('应处理空条件表达式', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -320,12 +320,12 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
   });
 
-  it('应处理没有外出路径的网关', () => {
+  it('应处理没有外出路径的网关', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -342,12 +342,12 @@ describe('ExclusiveGatewayExecutor', () => {
       sequenceFlows: [],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(0);
   });
 
-  it('应处理带有文档的网关', () => {
+  it('应处理带有文档的网关', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -372,12 +372,12 @@ describe('ExclusiveGatewayExecutor', () => {
       documentation: '排他网关文档',
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
   });
 
-  it('第一个匹配条件应为真时选择该路径', () => {
+  it('第一个匹配条件应为真时选择该路径', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -407,7 +407,7 @@ describe('ExclusiveGatewayExecutor', () => {
       ],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow2');

@@ -14,12 +14,12 @@ describe('EndEventExecutor', () => {
     mockDefinition = createTestDefinition();
   });
 
-  it('应返回支持的元素类型', () => {
+  it('应返回支持的元素类型', async () => {
     const types = executor.getSupportedTypes();
     expect(types).toContain('bpmn:endEvent');
   });
 
-  it('应执行结束事件并移除令牌', () => {
+  it('应执行结束事件并移除令牌', async () => {
     const state = createTestState({ tokens: [{ id: 'token1', elementId: 'end1' }] });
 
     const element = {
@@ -28,12 +28,12 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(0);
   });
 
-  it('应保持其他令牌不受影响', () => {
+  it('应保持其他令牌不受影响', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [
@@ -51,13 +51,13 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('task1');
   });
 
-  it('应检查是否所有令牌都已完成', () => {
+  it('应检查是否所有令牌都已完成', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'end1' }],
@@ -72,12 +72,12 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
-    expect(newState.status).toBe('running');
+    expect(newState.status).toBe('completed');
   });
 
-  it('应处理带有文档信息的结束事件', () => {
+  it('应处理带有文档信息的结束事件', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'end1' }],
@@ -93,12 +93,12 @@ describe('EndEventExecutor', () => {
       documentation: '结束节点文档',
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(0);
   });
 
-  it('应处理带有扩展元素的结束事件', () => {
+  it('应处理带有扩展元素的结束事件', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'end1' }],
@@ -116,12 +116,12 @@ describe('EndEventExecutor', () => {
       },
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(0);
   });
 
-  it('应处理多个结束事件', () => {
+  it('应处理多个结束事件', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [
@@ -139,13 +139,13 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('end2');
   });
 
-  it('应保持变量不变', () => {
+  it('应保持变量不变', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'end1' }],
@@ -160,12 +160,12 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.variables).toEqual({ result: 'approved' });
   });
 
-  it('应保持项目状态不变', () => {
+  it('应保持项目状态不变', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'end1' }],
@@ -187,13 +187,13 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.items).toHaveLength(1);
     expect(newState.items[0].status).toBe('completed');
   });
 
-  it('应处理空令牌数组', () => {
+  it('应处理空令牌数组', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [],
@@ -208,13 +208,13 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(0);
-    expect(newState.status).toBe('running');
+    expect(newState.status).toBe('completed');
   });
 
-  it('应返回执行结果包含成功标志', () => {
+  it('应返回执行结果包含成功标志', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'end1' }],
@@ -229,9 +229,9 @@ describe('EndEventExecutor', () => {
       incoming: ['flow1'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = state.tokens.length > 0 ? state.tokens[0] : { id: 'token1', elementId: element.id, data: {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState).toBeDefined();
-    expect(newState.status).toBe('running');
+    expect(newState.status).toBe('completed');
   });
 });

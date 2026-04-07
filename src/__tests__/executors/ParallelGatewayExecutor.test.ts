@@ -20,12 +20,12 @@ describe('ParallelGatewayExecutor', () => {
     } as ProcessDefinition;
   });
 
-  it('应返回支持的元素类型', () => {
+  it('应返回支持的元素类型', async () => {
     const types = executor.getSupportedTypes();
     expect(types).toContain('bpmn:parallelGateway');
   });
 
-  it('应在分叉时创建多个令牌', () => {
+  it('应在分叉时创建多个令牌', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -41,13 +41,13 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2', 'flow3'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(2);
     expect(newState.tokens.map(t => t.elementId)).toEqual(['flow2', 'flow3']);
   });
 
-  it('应在汇聚时等待所有输入令牌', () => {
+  it('应在汇聚时等待所有输入令牌', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [
@@ -67,13 +67,13 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow4'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow4');
   });
 
-  it('应处理单个外出路径的分叉', () => {
+  it('应处理单个外出路径的分叉', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -89,13 +89,13 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(1);
     expect(newState.tokens[0].elementId).toBe('flow2');
   });
 
-  it('应处理三个外出路径的分叉', () => {
+  it('应处理三个外出路径的分叉', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -111,12 +111,12 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2', 'flow3', 'flow4'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(3);
   });
 
-  it('应移除输入令牌', () => {
+  it('应移除输入令牌', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -132,12 +132,12 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2', 'flow3'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens.filter(t => t.elementId === 'gateway1')).toHaveLength(0);
   });
 
-  it('应保持变量不变', () => {
+  it('应保持变量不变', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -153,12 +153,12 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2', 'flow3'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.variables).toEqual({ test: 'value' });
   });
 
-  it('应处理没有外出路径的网关', () => {
+  it('应处理没有外出路径的网关', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -174,12 +174,12 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: [],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(0);
   });
 
-  it('应处理空令牌数组', () => {
+  it('应处理空令牌数组', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [],
@@ -195,12 +195,12 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(0);
   });
 
-  it('应为每个新令牌生成唯一 ID', () => {
+  it('应为每个新令牌生成唯一 ID', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -216,13 +216,13 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2', 'flow3'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     const tokenIds = newState.tokens.map(t => t.id);
     expect(new Set(tokenIds).size).toBe(tokenIds.length);
   });
 
-  it('应保持流程状态为 running', () => {
+  it('应保持流程状态为 running', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -238,12 +238,12 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2', 'flow3'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.status).toBe('running');
   });
 
-  it('应处理带有文档的网关', () => {
+  it('应处理带有文档的网关', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -260,12 +260,12 @@ describe('ParallelGatewayExecutor', () => {
       documentation: '并行网关文档',
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(2);
   });
 
-  it('应处理带有扩展元素的网关', () => {
+  it('应处理带有扩展元素的网关', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -284,12 +284,12 @@ describe('ParallelGatewayExecutor', () => {
       },
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(2);
   });
 
-  it('应处理复杂并行网关场景', () => {
+  it('应处理复杂并行网关场景', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [{ id: 'token1', elementId: 'gateway1' }],
@@ -305,13 +305,13 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow2', 'flow3', 'flow4', 'flow5'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens).toHaveLength(4);
     expect(newState.variables).toEqual({ applicant: '张三', amount: 1000 });
   });
 
-  it('汇聚时应只消耗一个令牌当还有未完成路径', () => {
+  it('汇聚时应只消耗一个令牌当还有未完成路径', async () => {
     const state: ProcessState = {
       status: 'running',
       tokens: [
@@ -331,7 +331,7 @@ describe('ParallelGatewayExecutor', () => {
       outgoing: ['flow4'],
     };
 
-    const newState = executor.execute(state, element, mockDefinition);
+    const token = { id: 'token1', elementId: element.id, data: state.variables || {} }; const newState = await executor.execute(state, element, token);
 
     expect(newState.tokens.length).toBeLessThan(2);
   });
