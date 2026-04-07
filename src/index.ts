@@ -16,6 +16,7 @@ export { StartEventExecutor } from './executors/StartEventExecutor.js';
 export { EndEventExecutor } from './executors/EndEventExecutor.js';
 export { UserTaskExecutor } from './executors/UserTaskExecutor.js';
 export { ServiceTaskExecutor } from './executors/ServiceTaskExecutor.js';
+export { ScriptTaskExecutor } from './executors/ScriptTaskExecutor.js';
 export { ExclusiveGatewayExecutor } from './executors/ExclusiveGatewayExecutor.js';
 export { ParallelGatewayExecutor } from './executors/ParallelGatewayExecutor.js';
 

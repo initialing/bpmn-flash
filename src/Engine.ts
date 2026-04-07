@@ -1,6 +1,6 @@
-import BPMNParser from './BPMNParser.js';
-import ExecutionInstance from './ExecutionInstance.js';
-import { ProcessDefinition } from './types/index.js';
+import BPMNParser from './parser/BPMNParser';
+import ExecutionInstance from './ExecutionInstance';
+import { ProcessDefinition } from './types/index';
 
 class Engine {
 	private processDefinitions: Map<string, ProcessDefinition>;

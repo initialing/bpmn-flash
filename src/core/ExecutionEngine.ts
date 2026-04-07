@@ -1,4 +1,5 @@
 import { ProcessState, ExecutionResult } from '../state/WorkflowState.js';
+import { ProcessDefinition } from '../types/index.js';
 import { NodeExecutor } from '../executors/NodeExecutor.js';
 import { StartEventExecutor } from '../executors/StartEventExecutor.js';
 import { EndEventExecutor } from '../executors/EndEventExecutor.js';
@@ -36,8 +37,10 @@ export class ExecutionEngine {
 
 	/**
 	 * 执行流程状态中的待执行元素
+	 * @param state 流程状态
+	 * @param definition 流程定义（从 XML 解析得到）
 	 */
-	execute(state: ProcessState): ProcessState {
+	execute(state: ProcessState, definition: ProcessDefinition): ProcessState {
 		// 执行所有活跃令牌，直到没有更多可执行的令牌
 		let currentState = { ...state };
 		let hasChanges = true;
@@ -98,16 +101,46 @@ export class ExecutionEngine {
 	/**
 	 * 执行单个令牌
 	 */
-	private executeToken(state: ProcessState, token: any): ExecutionResult {
+	private executeToken(
+		state: ProcessState,
+		token: any,
+		definition: ProcessDefinition
+	): ExecutionResult {
 		try {
-			// 这里我们需要访问流程定义来获取元素信息
-			// 由于当前没有流程定义的引用，我们暂时返回原状态
-			// 在完整的实现中，这里会获取元素定义并选择合适的执行器
+			// 从定义中获取元素
+			const element = definition.elements.get(token.elementId);
+
+			// 🔍 关键检查：如果找不到元素，说明 XML 改动过大
+			if (!element) {
+				throw new Error(
+					`流程定义已变更，找不到元素：${token.elementId}。` +
+						`请确保传入的 BPMN XML 与流程启动时一致。`
+				);
+			}
+
+			// 查找执行器
+			const executor = this.findExecutor(element.type);
+			if (!executor) {
+				console.warn(
+					`No executor found for element type: ${element.type}`
+				);
+				return {
+					newState: state,
+					tasks: [],
+					events: [],
+					success: true,
+				};
+			}
+
+			// 执行节点
+			const newState = executor.execute(state, element, token);
+			const tasks = this.generateTasks(newState);
+			const events = this.generateEvents(state, newState, element);
 
 			return {
-				newState: state,
-				tasks: [],
-				events: [],
+				newState,
+				tasks,
+				events,
 				success: true,
 			};
 		} catch (error) {

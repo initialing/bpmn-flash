@@ -9,16 +9,18 @@ import { BpmnValidator } from './BpmnValidator';
 
 class BPMNParser {
 	/**
-	 * 解析BPMN XML并创建流程定义
-	 * @param xml BPMN XML字符串
-	 * @param validate 是否进行验证，默认为true
+	 * 解析 BPMN XML 并创建流程定义
+	 * @param xml BPMN XML 字符串
+	 * @param validate 是否进行验证，默认为 true
 	 * @returns 流程定义对象
 	 */
 	static parse(xml: string, validate: boolean = true): ProcessDefinition {
 		try {
-			// 检查XML格式
+			// 检查 XML 格式
 			if (!xml || typeof xml !== 'string') {
-				throw new ParseError('输入的XML格式无效或为空');
+				throw new ParseError(
+					'BF_PARSE_XML_FORMAT_ERROR: 输入的 XML 格式无效或为空'
+				);
 			}
 
 			const processDefinition: ProcessDefinition = {
@@ -28,8 +30,8 @@ class BPMNParser {
 				sequenceFlows: new Map(),
 			};
 
-			// 提取流程定义信息 - 支持不同的BPMN命名空间格式
-			// 首先尝试匹配带name属性的流程定义
+			// 提取流程定义信息 - 支持不同的 BPMN 命名空间格式
+			// 首先尝试匹配带 name 属性的流程定义
 			const processMatchWithName = xml.match(
 				/<(?:bpmn:)?process[^>]*id="([^"]*)"[^>]*name="([^"]*)"[^>]*>/
 			);
@@ -43,7 +45,7 @@ class BPMNParser {
 					processDefinition.version = versionMatch[1];
 				}
 			} else {
-				// 尝试匹配只有id的流程定义
+				// 尝试匹配只有 id 的流程定义
 				const processMatch = xml.match(
 					/<(?:bpmn:)?process[^>]*id="([^"]*)"/
 				);
@@ -51,20 +53,25 @@ class BPMNParser {
 					processDefinition.id = processMatch[1];
 					processDefinition.name = processMatch[1];
 
-					// 尝试匹配name属性 separately
-					const nameMatch = xml.match(/name="([^"]*)"/);
-					if (nameMatch && nameMatch[1] !== processDefinition.id) {
-						// 只有当name不等于id时才更新name，避免覆盖已有的id作为name的情况
-						processDefinition.name = nameMatch[1];
+					// 尝试从 process 标签内匹配 name 属性
+					const processTagMatch = xml.match(
+						/<(?:bpmn:)?process[^>]*name="([^"]*)"/
+					);
+					if (
+						processTagMatch &&
+						processTagMatch[1] !== processDefinition.id
+					) {
+						processDefinition.name = processTagMatch[1];
 					}
 				} else {
+					// 没有找到 process 元素，抛出错误
 					throw new ParseError(
-						'未能找到流程定义信息，XML格式可能不正确'
+						'BF_PARSE_XML_FORMAT_ERROR: 未能找到流程定义信息，XML 格式可能不正确'
 					);
 				}
 			}
 
-			// 解析各种BPMN元素
+			// 解析各种 BPMN 元素
 			processDefinition.elements = this.parseElements(xml);
 			processDefinition.sequenceFlows = this.parseSequenceFlows(xml);
 
@@ -79,12 +86,12 @@ class BPMNParser {
 					const errorMessages = validationResult.errors
 						.map(err =>
 							err.elementId
-								? `${err.message} (元素ID: ${err.elementId})`
+								? `${err.message} (元素 ID: ${err.elementId})`
 								: err.message
 						)
 						.join('; ');
 					throw new ValidationError(
-						`流程定义验证失败: ${errorMessages}`
+						`流程定义验证失败：${errorMessages}`
 					);
 				}
 			}
@@ -98,14 +105,14 @@ class BPMNParser {
 				throw error;
 			}
 			throw new ParseError(
-				`解析BPMN XML时发生错误: ${(error as Error).message}`,
+				`解析 BPMN XML 时发生错误：${(error as Error).message}`,
 				{ originalError: error }
 			);
 		}
 	}
 
 	/**
-	 * 解析BPMN元素
+	 * 解析 BPMN 元素
 	 */
 	static parseElements(xml: string): Map<string, Element> {
 		const elements = new Map<string, Element>();
@@ -141,7 +148,7 @@ class BPMNParser {
 				if (idMatch) {
 					const id = idMatch[1];
 
-					// 尝试获取名称，如果没有则使用ID作为名称
+					// 尝试获取名称，如果没有则使用 ID 作为名称
 					const nameMatch = attributes.match(/name="([^"]*)"/);
 					const name = nameMatch ? nameMatch[1] : id;
 
@@ -196,7 +203,7 @@ class BPMNParser {
 	static parseSequenceFlows(xml: string): Map<string, SequenceFlow> {
 		const sequenceFlows = new Map<string, SequenceFlow>();
 
-		// 支持带或不带命名空间的sequenceFlow
+		// 支持带或不带命名空间的 sequenceFlow
 		const regex = /<(?:bpmn:)?sequenceFlow([^>]*)\/?>/g;
 		let match;
 
@@ -248,25 +255,25 @@ class BPMNParser {
 	): string | null {
 		// 使用字符串查找方式，避免正则表达式的复杂性
 		// 查找 <bpmn:sequenceFlow id="flowId" 或 id="flowId" 在 sequenceFlow 标签内
-		
+
 		// 找到所有 sequenceFlow 开始标签
 		const flowTagStart = '<bpmn:sequenceFlow';
 		let searchPos = 0;
-		
+
 		while (searchPos < xml.length) {
 			const flowStart = xml.indexOf(flowTagStart, searchPos);
 			if (flowStart === -1) {
 				return null;
 			}
-			
+
 			// 找到这个标签的结束位置
 			const tagEnd = xml.indexOf('>', flowStart);
 			if (tagEnd === -1) {
 				return null;
 			}
-			
+
 			const tagContent = xml.substring(flowStart, tagEnd + 1);
-			
+
 			// 检查这个标签是否包含我们的 flowId
 			const idAttr = ` id="${flowId}"`;
 			if (!tagContent.includes(idAttr)) {
@@ -274,40 +281,85 @@ class BPMNParser {
 				searchPos = tagEnd + 1;
 				continue;
 			}
-			
+
 			// 检查是否是自闭合标签
 			if (tagContent.endsWith('/>')) {
 				return null;
 			}
-			
+
 			// 找到对应的结束标签
 			const endTag = '</bpmn:sequenceFlow>';
 			const endPos = xml.indexOf(endTag, tagEnd);
 			if (endPos === -1) {
 				return null;
 			}
-			
+
 			// 提取 flow 内容
 			const flowContent = xml.substring(tagEnd + 1, endPos);
 			return this.extractConditionFromFlow(flowContent);
 		}
-		
+
 		return null;
 	}
 
 	/**
 	 * 从 flow 元素内容中提取条件表达式
 	 */
-	private static extractConditionFromFlow(flowContent: string): string | null {
+	private static extractConditionFromFlow(
+		flowContent: string
+	): string | null {
 		// 从 flow 内容中提取 conditionExpression
-		const conditionRegex = /<(?:bpmn:)?conditionExpression[^>]*>([^<]+)<\/(?:bpmn:)?conditionExpression>/;
+		const conditionRegex =
+			/<(?:bpmn:)?conditionExpression[^>]*>([^<]+)<\/(?:bpmn:)?conditionExpression>/;
 		const conditionMatch = flowContent.match(conditionRegex);
 
 		if (conditionMatch) {
-			return conditionMatch[1].trim();
+			let expression = conditionMatch[1].trim();
+			// 转换表达式中的变量引用，将 ${var} 转换为 ${data.var}
+			expression = this.transformExpression(expression);
+			return expression;
 		}
 
 		return null;
+	}
+
+	/**
+	 * 转换表达式中的变量引用
+	 * 将 ${var} 或 #{var} 转换为 ${data.var} 或 #{data.var}
+	 */
+	private static transformExpression(expression: string): string {
+		// 匹配 ${...} 或 #{...} 格式的表达式
+		return expression.replace(
+			/(\$\{|#\{)([^}]+)\}/g,
+			(match, prefix, content) => {
+				// 如果已经包含 data. 前缀，不转换
+				if (content.startsWith('data.')) {
+					return match;
+				}
+				// 转换变量引用
+				const transformed = content.replace(
+					/\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g,
+					varMatch => {
+						// 跳过布尔值和关键字
+						if (
+							[
+								'true',
+								'false',
+								'null',
+								'undefined',
+								'and',
+								'or',
+								'not',
+							].includes(varMatch)
+						) {
+							return varMatch;
+						}
+						return `data.${varMatch}`;
+					}
+				);
+				return `${prefix}${transformed}}`;
+			}
+		);
 	}
 
 	/**
@@ -328,7 +380,7 @@ class BPMNParser {
 				sourceElement.outgoing.push(flow.id);
 			} else {
 				console.warn(
-					`警告: 顺序流 ${flow.id} 的源元素 ${flow.sourceRef} 未找到`
+					`警告：顺序流 ${flow.id} 的源元素 ${flow.sourceRef} 未找到`
 				);
 			}
 
@@ -337,7 +389,7 @@ class BPMNParser {
 				targetElement.incoming.push(flow.id);
 			} else {
 				console.warn(
-					`警告: 顺序流 ${flow.id} 的目标元素 ${flow.targetRef} 未找到`
+					`警告：顺序流 ${flow.id} 的目标元素 ${flow.targetRef} 未找到`
 				);
 			}
 		}

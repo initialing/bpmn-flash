@@ -54,20 +54,37 @@ export class WorkflowEngine {
 
 	/**
 	 * 执行流程动作（如完成任务、触发事件等）
+	 * @param currentState 当前流程状态
+	 * @param action 动作
+	 * @param bpmnXML BPMN XML 字符串（用于重新解析获取元素定义）
 	 */
 	executeAction(
 		currentState: ProcessState,
-		action: StateAction
+		action: StateAction,
+		bpmnXML: string
 	): ExecutionResult {
 		try {
-			// 使用转换引擎应用动作
+			// 1. 重新解析 BPMN XML
+			const definition = BPMNParser.parse(bpmnXML);
+
+			// 2. 验证流程定义 ID 是否匹配
+			if (definition.id !== currentState.definitionId) {
+				console.warn(
+					`流程定义 ID 不匹配：${definition.id} !== ${currentState.definitionId}`
+				);
+			}
+
+			// 3. 使用转换引擎应用动作
 			const newState = this.transitionEngine.applyAction(
 				currentState,
 				action
 			);
 
-			// 使用执行引擎处理状态变化
-			const executedState = this.executionEngine.execute(newState);
+			// 4. 使用执行引擎处理状态变化（传入 definition）
+			const executedState = this.executionEngine.execute(
+				newState,
+				definition
+			);
 
 			// 生成任务和事件
 			const tasks = this.generateTasks(executedState);
@@ -132,11 +149,12 @@ export class WorkflowEngine {
 
 	/**
 	 * 获取流程实例的待办任务
+	 * @param state 流程状态（由应用层提供）
+	 * @returns 待办任务列表
 	 */
-	getTasks(processId: string): any[] {
-		// 在实际实现中，这里会从存储中获取任务
-		// 当前为简化实现，返回空数组
-		return [];
+	getTasks(state: ProcessState): any[] {
+		// 从状态中提取等待中的任务
+		return state.items.filter(item => item.status === 'wait');
 	}
 
 	/**

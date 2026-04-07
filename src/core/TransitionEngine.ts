@@ -71,7 +71,7 @@ export class TransitionEngine {
 			case 'START_PROCESS':
 				return currentState.status === 'created';
 
-			case 'COMPLETE_TASK':
+			case 'COMPLETE_TASK': {
 				// 检查任务是否存在且处于可完成状态
 				const taskId = action.payload?.taskId;
 				if (taskId) {
@@ -84,6 +84,7 @@ export class TransitionEngine {
 					);
 				}
 				return true; // 如果没有指定任务ID，认为是有效的
+			}
 
 			case 'EXECUTE_ELEMENT':
 				// 检查元素是否存在于流程定义中（此处简化处理）
@@ -93,7 +94,7 @@ export class TransitionEngine {
 				// 数据更新总是允许的
 				return true;
 
-			case 'TRANSITION_TOKEN':
+			case 'TRANSITION_TOKEN': {
 				// 检查令牌是否存在
 				const tokenId = action.payload?.tokenId;
 				if (tokenId) {
@@ -102,6 +103,7 @@ export class TransitionEngine {
 					);
 				}
 				return true;
+			}
 
 			case 'ERROR_OCCURRED':
 				// 错误发生总是允许的

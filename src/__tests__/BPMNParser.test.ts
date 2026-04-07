@@ -49,9 +49,9 @@ describe('BPMNParser', () => {
 		test('P006: 不含process的XML应抛出异常', () => {
 			const noProcessXML =
 				'<?xml version="1.0"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"></bpmn:definitions>';
-			// 根据实际实现，可能返回空定义或抛出异常
-			const result = BPMNParser.parse(noProcessXML);
-			expect(result.elements.size).toBe(0);
+			expect(() => BPMNParser.parse(noProcessXML)).toThrow(
+				'BF_PARSE_XML_FORMAT_ERROR'
+			);
 		});
 	});
 
@@ -182,10 +182,12 @@ describe('BPMNParser', () => {
 		});
 
 		test('应处理大量元素的流程', () => {
-			// 生成包含大量元素的XML
+			// 生成包含大量元素的 XML
 			let manyElementsXML = `<?xml version="1.0"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
-  <bpmn:process id="large-process" name="大流程">`;
+  <bpmn:process id="large-process" name="大流程">
+    <bpmn:startEvent id="start" />
+    <bpmn:endEvent id="end" />`;
 
 			for (let i = 0; i < 100; i++) {
 				manyElementsXML += `<bpmn:task id="task${i}" name="任务${i}" />`;
@@ -194,7 +196,7 @@ describe('BPMNParser', () => {
 			manyElementsXML += `</bpmn:process></bpmn:definitions>`;
 
 			const result = BPMNParser.parse(manyElementsXML);
-			expect(result.elements.size).toBe(100);
+			expect(result.elements.size).toBe(102);
 		});
 
 		test('应处理深层嵌套的XML', () => {
@@ -220,9 +222,10 @@ describe('BPMNParser', () => {
 				'<bpmn:userTask id="start"'
 			);
 			// 根据实现，后解析的可能会覆盖先解析的
-			const result = BPMNParser.parse(duplicateIdXML);
-			const element = result.elements.get('start');
-			expect(element).toBeDefined();
+			// 重复 ID 会导致验证失败
+			expect(() => BPMNParser.parse(duplicateIdXML)).toThrow(
+				'流程定义验证失败'
+			);
 		});
 	});
 });
