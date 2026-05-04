@@ -29,6 +29,11 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 		});
 
 		try {
+			// 如果令牌不在当前状态中，直接返回
+			const tokenExists = newState.tokens.some(t => t.id === token.id);
+			if (!tokenExists) {
+				return newState;
+			}
 			// 执行服务任务逻辑
 			const result = await this.executeServiceTask(element, token.data);
 
@@ -90,18 +95,18 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 
 		if (implementation) {
 			switch (implementation) {
-			case 'http-service':
-				return this.executeHttpService(element, inputData);
-			case 'email-service':
-				return this.executeEmailService(element, inputData);
-			case 'script':
-				return this.executeScriptService(element, inputData);
-			default:
-				return new Promise(resolve => {
-					setTimeout(() => {
-						resolve(inputData);
-					}, 100);
-				});
+				case 'http-service':
+					return this.executeHttpService(element, inputData);
+				case 'email-service':
+					return this.executeEmailService(element, inputData);
+				case 'script':
+					return this.executeScriptService(element, inputData);
+				default:
+					return new Promise(resolve => {
+						setTimeout(() => {
+							resolve(inputData);
+						}, 100);
+					});
 			}
 		} else {
 			return new Promise(resolve => {

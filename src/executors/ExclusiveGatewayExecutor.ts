@@ -135,7 +135,13 @@ export class ExclusiveGatewayExecutor extends BaseNodeExecutor {
 	private getSequenceFlowById(
 		element: ElementLike,
 		flowId: string
-	): SequenceFlowLike {
+	): SequenceFlowLike | undefined {
+		if (element.sequenceFlows) {
+			const flow = element.sequenceFlows.find(
+				(f: SequenceFlowLike) => f.id === flowId
+			);
+			if (flow) return flow;
+		}
 		return {
 			id: flowId,
 			sourceRef: element.id,

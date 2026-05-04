@@ -66,20 +66,65 @@ export function evaluateExpressionResult(
 		// 支持 ${...} 或 #{...} 格式的表达式
 		let innerExpression = expression.trim();
 
-		// 替换所有的 ${var} 和 #{var} 为对应的值
-		innerExpression = innerExpression.replace(
-			/(\$\{|#\{)([^}]+)\}/g,
-			(match, prefix, content) => {
-				const value = getValue(content.trim(), context);
-				if (value === undefined) {
-					return 'undefined';
-				}
-				if (typeof value === 'string') {
-					return `'${value}'`;
-				}
-				return String(value);
-			}
+		// 如果整个表达式是单个 ${...} 或 #{...} 包裹的表达式，
+		// 提取内部内容作为完整表达式进行求值（支持 ${amount > 500} 这种写法）
+		const singleWrapMatch = innerExpression.match(
+			/^(\$\{|#\{)([^}]+)\}$/
 		);
+		if (singleWrapMatch) {
+			const innerContent = singleWrapMatch[2].trim();
+			// 如果内部包含运算符，作为完整表达式求值
+			if (/[><=!&|+\-*/]/.test(innerContent)) {
+				// 替换内部表达式中的变量引用为实际值
+				// 跳过字符串字面值（双引号或单引号内的内容）
+				innerExpression = innerContent.replace(
+					/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|([a-zA-Z_][a-zA-Z0-9_.]*)/g,
+					(fullMatch, strLiteral, varMatch) => {
+						// 如果匹配到字符串字面值，原样保留
+						if (strLiteral) {
+							return strLiteral;
+						}
+						// 跳过字面值关键字
+						if (['true', 'false', 'null', 'undefined'].includes(varMatch.toLowerCase())) {
+							return varMatch;
+						}
+						const value = getValue(varMatch, context);
+						if (value === undefined) {
+							return 'undefined';
+						}
+						if (typeof value === 'string') {
+							return `'${value}'`;
+						}
+						return String(value);
+					}
+				);
+			} else {
+				// 简单变量引用，如 ${amount}
+				const value = getValue(innerContent, context);
+				if (value === undefined) {
+					innerExpression = 'undefined';
+				} else if (typeof value === 'string') {
+					innerExpression = `'${value}'`;
+				} else {
+					innerExpression = String(value);
+				}
+			}
+		} else {
+			// 替换所有的 ${var} 和 #{var} 为对应的值
+			innerExpression = innerExpression.replace(
+				/(\$\{|#\{)([^}]+)\}/g,
+				(match, prefix, content) => {
+					const value = getValue(content.trim(), context);
+					if (value === undefined) {
+						return 'undefined';
+					}
+					if (typeof value === 'string') {
+						return `'${value}'`;
+					}
+					return String(value);
+				}
+			);
+		}
 
 		const result = evaluateSimpleExpression(innerExpression, context);
 		return {

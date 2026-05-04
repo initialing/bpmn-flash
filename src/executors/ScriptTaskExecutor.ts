@@ -114,16 +114,16 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 
 		try {
 			switch (scriptLanguage.toLowerCase()) {
-			case 'javascript':
-			case 'js':
-				return this.executeJavaScript(script, inputData);
-			case 'expression':
-				return this.executeExpression(script, inputData);
-			default:
-				return {
-					success: false,
-					error: `不支持的脚本语言：${scriptLanguage}`,
-				};
+				case 'javascript':
+				case 'js':
+					return this.executeJavaScript(script, inputData);
+				case 'expression':
+					return this.executeExpression(script, inputData);
+				default:
+					return {
+						success: false,
+						error: `不支持的脚本语言：${scriptLanguage}`,
+					};
 			}
 		} catch (error) {
 			return {

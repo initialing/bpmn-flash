@@ -28,6 +28,12 @@ export class ParallelGatewayExecutor extends BaseNodeExecutor {
 		});
 
 		try {
+			// 如果令牌不在当前状态中，直接返回
+			const tokenExists = newState.tokens.some(t => t.id === token.id);
+			if (!tokenExists) {
+				return newState;
+			}
+
 			const incomingTokens = this.getIncomingTokensForGateway(
 				newState,
 				element
