@@ -8,7 +8,6 @@ import {
 import { ExecutionEngine } from './ExecutionEngine.js';
 import { TransitionEngine } from './TransitionEngine.js';
 import BPMNParser from '../parser/BPMNParser.js';
-import ExecutionInstance from '../ExecutionInstance.js';
 import { Item } from '../types/index.js';
 
 /**
