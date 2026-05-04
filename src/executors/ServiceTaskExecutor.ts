@@ -95,18 +95,18 @@ export class ServiceTaskExecutor extends BaseNodeExecutor {
 
 		if (implementation) {
 			switch (implementation) {
-				case 'http-service':
-					return this.executeHttpService(element, inputData);
-				case 'email-service':
-					return this.executeEmailService(element, inputData);
-				case 'script':
-					return this.executeScriptService(element, inputData);
-				default:
-					return new Promise(resolve => {
-						setTimeout(() => {
-							resolve(inputData);
-						}, 100);
-					});
+			case 'http-service':
+				return this.executeHttpService(element, inputData);
+			case 'email-service':
+				return this.executeEmailService(element, inputData);
+			case 'script':
+				return this.executeScriptService(element, inputData);
+			default:
+				return new Promise(resolve => {
+					setTimeout(() => {
+						resolve(inputData);
+					}, 100);
+				});
 			}
 		} else {
 			return new Promise(resolve => {

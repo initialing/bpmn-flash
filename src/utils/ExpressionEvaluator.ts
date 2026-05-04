@@ -68,9 +68,7 @@ export function evaluateExpressionResult(
 
 		// 如果整个表达式是单个 ${...} 或 #{...} 包裹的表达式，
 		// 提取内部内容作为完整表达式进行求值（支持 ${amount > 500} 这种写法）
-		const singleWrapMatch = innerExpression.match(
-			/^(\$\{|#\{)([^}]+)\}$/
-		);
+		const singleWrapMatch = innerExpression.match(/^(\$\{|#\{)([^}]+)\}$/);
 		if (singleWrapMatch) {
 			const innerContent = singleWrapMatch[2].trim();
 			// 如果内部包含运算符，作为完整表达式求值
@@ -85,7 +83,11 @@ export function evaluateExpressionResult(
 							return strLiteral;
 						}
 						// 跳过字面值关键字
-						if (['true', 'false', 'null', 'undefined'].includes(varMatch.toLowerCase())) {
+						if (
+							['true', 'false', 'null', 'undefined'].includes(
+								varMatch.toLowerCase()
+							)
+						) {
 							return varMatch;
 						}
 						const value = getValue(varMatch, context);

@@ -150,81 +150,81 @@ export class WorkflowState {
 		};
 
 		switch (action.type) {
-			case 'START_PROCESS':
-				return {
-					...state,
-					status: 'running',
-					startedAt: state.startedAt || new Date(),
-					tokens: [...state.tokens, ...(action.payload.tokens || [])],
-					history: [...state.history, newHistoryEntry],
-				};
+		case 'START_PROCESS':
+			return {
+				...state,
+				status: 'running',
+				startedAt: state.startedAt || new Date(),
+				tokens: [...state.tokens, ...(action.payload.tokens || [])],
+				history: [...state.history, newHistoryEntry],
+			};
 
-			case 'EXECUTE_ELEMENT':
-				return {
-					...state,
-					data: { ...state.data, ...action.payload.newData },
-					tokens: state.tokens.filter(
+		case 'EXECUTE_ELEMENT':
+			return {
+				...state,
+				data: { ...state.data, ...action.payload.newData },
+				tokens: state.tokens.filter(
+					t => t.id !== action.payload.tokenId
+				),
+				items: action.payload.item
+					? [...state.items, action.payload.item]
+					: state.items,
+				history: [...state.history, newHistoryEntry],
+			};
+
+		case 'COMPLETE_TASK':
+			return {
+				...state,
+				items: state.items.map(item =>
+					item.id === action.payload.itemId
+						? {
+							...item,
+							status: 'completed',
+							endedAt: new Date(),
+						}
+						: item
+				),
+				tokens: [
+					...state.tokens,
+					...(action.payload.nextTokens || []),
+				],
+				history: [...state.history, newHistoryEntry],
+			};
+
+		case 'TRANSITION_TOKEN':
+			return {
+				...state,
+				tokens: [
+					...state.tokens.filter(
 						t => t.id !== action.payload.tokenId
 					),
-					items: action.payload.item
-						? [...state.items, action.payload.item]
-						: state.items,
-					history: [...state.history, newHistoryEntry],
-				};
+					...(action.payload.newTokens || []),
+				],
+				history: [...state.history, newHistoryEntry],
+			};
 
-			case 'COMPLETE_TASK':
-				return {
-					...state,
-					items: state.items.map(item =>
-						item.id === action.payload.itemId
-							? {
-									...item,
-									status: 'completed',
-									endedAt: new Date(),
-								}
-							: item
-					),
-					tokens: [
-						...state.tokens,
-						...(action.payload.nextTokens || []),
-					],
-					history: [...state.history, newHistoryEntry],
-				};
+		case 'UPDATE_DATA':
+			return {
+				...state,
+				data: { ...state.data, ...action.payload.data },
+				history: [...state.history, newHistoryEntry],
+			};
 
-			case 'TRANSITION_TOKEN':
-				return {
-					...state,
-					tokens: [
-						...state.tokens.filter(
-							t => t.id !== action.payload.tokenId
-						),
-						...(action.payload.newTokens || []),
-					],
-					history: [...state.history, newHistoryEntry],
-				};
+		case 'ERROR_OCCURRED':
+			return {
+				...state,
+				history: [
+					...state.history,
+					{
+						...newHistoryEntry,
+						action: 'error',
+						error: action.payload.error,
+					},
+				],
+			};
 
-			case 'UPDATE_DATA':
-				return {
-					...state,
-					data: { ...state.data, ...action.payload.data },
-					history: [...state.history, newHistoryEntry],
-				};
-
-			case 'ERROR_OCCURRED':
-				return {
-					...state,
-					history: [
-						...state.history,
-						{
-							...newHistoryEntry,
-							action: 'error',
-							error: action.payload.error,
-						},
-					],
-				};
-
-			default:
-				return state;
+		default:
+			return state;
 		}
 	}
 
@@ -297,18 +297,18 @@ export class WorkflowState {
 		actionType: string
 	): ExecutionHistoryEntry['action'] {
 		switch (actionType) {
-			case 'START_PROCESS':
-				return 'start';
-			case 'EXECUTE_ELEMENT':
-				return 'transition';
-			case 'COMPLETE_TASK':
-				return 'complete';
-			case 'TRANSITION_TOKEN':
-				return 'transition';
-			case 'ERROR_OCCURRED':
-				return 'error';
-			default:
-				return 'transition';
+		case 'START_PROCESS':
+			return 'start';
+		case 'EXECUTE_ELEMENT':
+			return 'transition';
+		case 'COMPLETE_TASK':
+			return 'complete';
+		case 'TRANSITION_TOKEN':
+			return 'transition';
+		case 'ERROR_OCCURRED':
+			return 'error';
+		default:
+			return 'transition';
 		}
 	}
 }
