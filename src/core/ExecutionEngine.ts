@@ -1,10 +1,11 @@
 import { ProcessState, ExecutionResult } from '../state/WorkflowState.js';
-import { ProcessDefinition, ElementLike, TokenLike } from '../types/index.js';
+import { ProcessDefinition, ElementLike, TokenLike, ScriptExecutorPlugin } from '../types/index.js';
 import { NodeExecutor } from '../executors/NodeExecutor.js';
 import { StartEventExecutor } from '../executors/StartEventExecutor.js';
 import { EndEventExecutor } from '../executors/EndEventExecutor.js';
 import { UserTaskExecutor } from '../executors/UserTaskExecutor.js';
 import { ServiceTaskExecutor } from '../executors/ServiceTaskExecutor.js';
+import { ScriptTaskExecutor } from '../executors/ScriptTaskExecutor.js';
 import { ExclusiveGatewayExecutor } from '../executors/ExclusiveGatewayExecutor.js';
 import { ParallelGatewayExecutor } from '../executors/ParallelGatewayExecutor.js';
 import { Item } from '../types/index.js';
@@ -15,16 +16,26 @@ import { Item } from '../types/index.js';
  */
 export class ExecutionEngine {
 	private executors: Map<string, NodeExecutor>;
+	private scriptTaskExecutor: ScriptTaskExecutor;
 
 	constructor() {
 		// 初始化所有执行器
 		this.executors = new Map();
+		this.scriptTaskExecutor = new ScriptTaskExecutor();
 		this.registerExecutor(new StartEventExecutor());
 		this.registerExecutor(new EndEventExecutor());
 		this.registerExecutor(new UserTaskExecutor());
 		this.registerExecutor(new ServiceTaskExecutor());
+		this.registerExecutor(this.scriptTaskExecutor);
 		this.registerExecutor(new ExclusiveGatewayExecutor());
 		this.registerExecutor(new ParallelGatewayExecutor());
+	}
+
+	/**
+	 * 设置脚本执行插件（传递给 ScriptTaskExecutor）
+	 */
+	setScriptExecutorPlugin(plugin: ScriptExecutorPlugin): void {
+		this.scriptTaskExecutor.setScriptExecutorPlugin(plugin);
 	}
 
 	/**

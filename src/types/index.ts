@@ -1,3 +1,5 @@
+import type { ProcessState } from '../state/WorkflowState.js';
+
 export type ElementType =
 	| 'bpmn:startEvent'
 	| 'bpmn:endEvent'
@@ -158,4 +160,25 @@ export interface SequenceFlowLike {
 	conditionType?: 'expression' | 'script';
 	default?: boolean;
 	[key: string]: any;
+}
+
+/**
+ * 脚本执行插件接口
+ * 当注册了此插件时，脚本任务使用插件执行脚本
+ * 未注册时，fallback 到内置的表达式计算器
+ */
+export interface ScriptExecutorPlugin {
+	/**
+	 * 执行脚本
+	 * @param state - 当前流程状态（包含流程变量等）
+	 * @param script - 脚本字符串
+	 * @param cb - 回调函数，插件内显式调用表示脚本执行完毕
+	 *   - cb(null, result) 表示成功，result 会作为脚本节点的输出
+	 *   - cb(error) 表示失败
+	 */
+	execute(
+		state: ProcessState,
+		script: string,
+		cb: (error: Error | null, result?: Record<string, any>) => void
+	): void;
 }

@@ -1,7 +1,7 @@
 import { ProcessState } from '../state/WorkflowState.js';
 import { BaseNodeExecutor } from './NodeExecutor.js';
 import { evaluateExpressionResult } from '../utils/ExpressionEvaluator.js';
-import { ElementLike, TokenLike } from '../types/index.js';
+import { ElementLike, TokenLike, ScriptExecutorPlugin } from '../types/index.js';
 
 /**
  * 脚本任务执行结果
@@ -16,8 +16,24 @@ interface ScriptExecutionResult {
  * 脚本任务执行器
  * 处理脚本任务节点（bpmn:scriptTask）
  * 支持安全的脚本执行，使用表达式求值器替代 eval
+ * 当注册了 ScriptExecutorPlugin 时，优先使用插件执行脚本
  */
 export class ScriptTaskExecutor extends BaseNodeExecutor {
+	private scriptExecutorPlugin: ScriptExecutorPlugin | null = null;
+
+	/**
+	 * 设置脚本执行插件
+	 */
+	setScriptExecutorPlugin(plugin: ScriptExecutorPlugin | null): void {
+		this.scriptExecutorPlugin = plugin;
+	}
+
+	/**
+	 * 获取当前脚本执行插件
+	 */
+	getScriptExecutorPlugin(): ScriptExecutorPlugin | null {
+		return this.scriptExecutorPlugin;
+	}
 	/**
 	 * 获取此执行器支持的节点类型
 	 */
@@ -39,7 +55,7 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 		});
 
 		try {
-			const result = await this.executeScript(element, token.data);
+			const result = await this.executeScript(element, token.data, state);
 
 			if (result.success) {
 				newState = this.addHistoryEntry(newState, element, 'complete', {
@@ -99,7 +115,8 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 	 */
 	private async executeScript(
 		element: ElementLike,
-		inputData: Record<string, any>
+		inputData: Record<string, any>,
+		state?: ProcessState
 	): Promise<ScriptExecutionResult> {
 		const script = element.properties?.script;
 		const scriptLanguage =
@@ -110,6 +127,11 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 				success: false,
 				error: '未指定脚本内容',
 			};
+		}
+
+		// 如果注册了脚本执行插件，优先使用插件
+		if (this.scriptExecutorPlugin && state) {
+			return this.executeWithPlugin(state, script);
 		}
 
 		try {
@@ -131,6 +153,38 @@ export class ScriptTaskExecutor extends BaseNodeExecutor {
 				error: error instanceof Error ? error.message : String(error),
 			};
 		}
+	}
+
+	/**
+	 * 使用插件执行脚本
+	 */
+	private executeWithPlugin(
+		state: ProcessState,
+		script: string
+	): Promise<ScriptExecutionResult> {
+		const plugin = this.scriptExecutorPlugin!;
+		return new Promise<ScriptExecutionResult>((resolve) => {
+			try {
+				plugin.execute(state, script, (error, result) => {
+					if (error) {
+						resolve({
+							success: false,
+							error: error.message,
+						});
+					} else {
+						resolve({
+							success: true,
+							value: result,
+						});
+					}
+				});
+			} catch (error) {
+				resolve({
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
+		});
 	}
 
 	/**

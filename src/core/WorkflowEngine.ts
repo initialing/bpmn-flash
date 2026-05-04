@@ -1,4 +1,4 @@
-import { ProcessDefinition, ElementLike, TokenLike } from '../types/index.js';
+import { ProcessDefinition, ElementLike, TokenLike, ScriptExecutorPlugin } from '../types/index.js';
 import {
 	ProcessState,
 	ExecutionResult,
@@ -17,10 +17,27 @@ import { Item } from '../types/index.js';
 export class WorkflowEngine {
 	private executionEngine: ExecutionEngine;
 	private transitionEngine: TransitionEngine;
+	private scriptExecutorPlugin: ScriptExecutorPlugin | null = null;
 
 	constructor() {
 		this.executionEngine = new ExecutionEngine();
 		this.transitionEngine = new TransitionEngine();
+	}
+
+	/**
+	 * 注册脚本执行插件
+	 * 注册后，脚本任务将使用此插件执行脚本
+	 */
+	setScriptExecutorPlugin(plugin: ScriptExecutorPlugin): void {
+		this.scriptExecutorPlugin = plugin;
+		this.executionEngine.setScriptExecutorPlugin(plugin);
+	}
+
+	/**
+	 * 获取当前脚本执行插件
+	 */
+	getScriptExecutorPlugin(): ScriptExecutorPlugin | null {
+		return this.scriptExecutorPlugin;
 	}
 
 	/**
