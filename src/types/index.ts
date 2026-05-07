@@ -182,3 +182,35 @@ export interface ScriptExecutorPlugin {
 		cb: (error: Error | null, result?: Record<string, any>) => void
 	): void;
 }
+
+// ============================================================
+// v3 新增类型
+// ============================================================
+
+/** 令牌状态 */
+export type TokenStatus = 'active' | 'suspended';
+
+/** v3 令牌（增加 status 和 suspendedAt） */
+export interface TokenV3 {
+	id: string;
+	elementId: string;
+	status: TokenStatus;
+	data: Record<string, any>;
+	createdAt: Date;
+	suspendedAt?: Date;
+}
+
+/** 执行轨迹条目 */
+export interface TraceEntry {
+	type: 'node-enter' | 'node-leave' | 'sequence-flow' | 'gateway-resolve';
+	elementId: string;
+	elementType: string;
+	elementName?: string;
+	tokenId: string;
+	timestamp: Date;
+	sourceRef?: string;
+	targetRef?: string;
+	flowId?: string;
+	selectedFlows?: string[];
+	extra?: Record<string, any>;
+}
