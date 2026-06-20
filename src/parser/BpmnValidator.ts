@@ -36,12 +36,12 @@ export class BpmnValidator {
 		);
 		if (startEvents.length === 0) {
 			errors.push({
-				message: '流程定义中必须至少包含一个开始事件',
+				message: 'Process definition must contain at least one startEvent',
 				code: 'MISSING_START_EVENT',
 			});
 		} else if (startEvents.length > 1) {
 			errors.push({
-				message: '流程定义中只能包含一个开始事件',
+				message: 'Process definition must contain exactly one startEvent',
 				code: 'MULTIPLE_START_EVENTS',
 			});
 		}
@@ -53,7 +53,7 @@ export class BpmnValidator {
 		);
 		if (endEvents.length === 0) {
 			errors.push({
-				message: '流程定义中必须至少包含一个结束事件',
+				message: 'Process definition must contain at least one endEvent',
 				code: 'MISSING_END_EVENT',
 			});
 		}
@@ -105,7 +105,7 @@ export class BpmnValidator {
 			if (seenIds.has(id)) {
 				errors.push({
 					elementId: id,
-					message: `元素ID重复: ${id}`,
+					message: `Duplicate element ID: ${id}`,
 					code: 'DUPLICATE_ELEMENT_ID',
 				});
 			} else {
@@ -125,14 +125,14 @@ export class BpmnValidator {
 			if (!processDefinition.elements.has(flow.sourceRef)) {
 				errors.push({
 					elementId: flowId,
-					message: `顺序流 ${flowId} 的源元素 ${flow.sourceRef} 不存在`,
+					message: `SequenceFlow ${flowId} source element ${flow.sourceRef} not found`,
 					code: 'MISSING_SOURCE_ELEMENT',
 				});
 			}
 			if (!processDefinition.elements.has(flow.targetRef)) {
 				errors.push({
 					elementId: flowId,
-					message: `顺序流 ${flowId} 的目标元素 ${flow.targetRef} 不存在`,
+					message: `SequenceFlow ${flowId} target element ${flow.targetRef} not found`,
 					code: 'MISSING_TARGET_ELEMENT',
 				});
 			}
@@ -160,7 +160,7 @@ export class BpmnValidator {
 				if (unconditionalFlows.length > 1) {
 					errors.push({
 						elementId: element.id,
-						message: `排他网关 ${element.id} 不能有多于一个无条件路径`,
+						message: `ExclusiveGateway ${element.id} cannot have more than one unconditional flow`,
 						code: 'EXCLUSIVE_GATEWAY_MULTIPLE_DEFAULT_FLOWS',
 					});
 				}
@@ -214,7 +214,7 @@ export class BpmnValidator {
 		for (const startEvent of startEvents) {
 			if (hasCycle(startEvent.id)) {
 				errors.push({
-					message: '流程定义中存在循环依赖',
+					message: 'Cyclic flow dependency detected in process definition',
 					code: 'CYCLIC_FLOW_DETECTED',
 				});
 				break; // 发现一个循环就足够了

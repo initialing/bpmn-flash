@@ -1,6 +1,13 @@
 /**
- * ID 生成工具
+ * ID 生成工具 — 使用 nanoid
  */
+import { nanoid } from 'nanoid';
+
 export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  return nanoid();
+}
+
+/** 生成长 ID（用于流程实例等场景，需要更高区分度） */
+export function generateLongId(): string {
+  return nanoid(21);
 }

@@ -73,13 +73,13 @@ export class GatewayResolver {
 
 		// 只有一条出边
 		if (outgoing.length === 1) {
-			const flow = definition.sequenceFlows.get(outgoing[0]);
+			const flow = definition.sequenceFlows.get(outgoing[0]!);
 			if (flow) {
 				return this.tokenManager.createToken(state, flow.targetRef, token.data);
 			}
 		}
 
-		throw new Error(`排他网关 ${gateway.id} 无满足条件的分支且无默认路径`);
+		throw new Error(`BF_GATEWAY_NO_MATCH: Exclusive gateway ${gateway.id} has no satisfied condition and no default flow`);
 	}
 
 	/** 并行网关：分裂或汇聚 */

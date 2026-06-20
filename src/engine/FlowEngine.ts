@@ -5,7 +5,7 @@
 
 import type { ProcessState } from '../state/ProcessState.js';
 import type { TokenV3 as Token, Element, ProcessDefinition, TraceEntry } from '../types/index.js';
-import type { FlowEngineOptions, NodeHookContext, ScriptExecutorPlugin } from '../hooks/types.js';
+import type { FlowEngineOptions, NodeHookContext, ScriptExecutorPlugin, HookEvent, HookHandlerMap } from '../hooks/types.js';
 import { TokenManager } from './TokenManager.js';
 import { GatewayResolver } from './GatewayResolver.js';
 import { FlowTraverser } from './FlowTraverser.js';
@@ -64,6 +64,42 @@ export class FlowEngine {
 		this.gatewayResolver = new GatewayResolver(this.tokenManager);
 		this.flowTraverser = new FlowTraverser(this.tokenManager, this.hooks);
 		this.scriptExecutor = options.scriptExecutor || null;
+	}
+
+	// ==================== 钩子注册 API ====================
+
+	/**
+	 * 注册钩子
+	 * 支持多个 handler 同时监听同一事件
+	 */
+	on<E extends HookEvent>(event: E, handler: HookHandlerMap[E]): this {
+		this.hooks.on(event, handler);
+		return this;
+	}
+
+	/**
+	 * 注销钩子
+	 */
+	off<E extends HookEvent>(event: E, handler: HookHandlerMap[E]): this {
+		this.hooks.off(event, handler);
+		return this;
+	}
+
+	/**
+	 * 注册插件（批量注册钩子的快捷方式）
+	 * @example
+	 * const myPlugin: FlowPlugin = {
+	 *   name: 'logger',
+	 *   version: '1.0.0',
+	 *   install(engine) {
+	 *     engine.on('nodeEnter', ctx => console.log(ctx.node.name));
+	 *   },
+	 * };
+	 * engine.use(myPlugin);
+	 */
+	use(plugin: FlowPlugin): this {
+		plugin.install(this);
+		return this;
 	}
 
 	// ==================== 生命周期 API ====================
@@ -324,7 +360,7 @@ export class FlowEngine {
 		for (const [, element] of definition.elements) {
 			if (isStartEvent(element.type)) return element;
 		}
-		throw new Error('流程定义中未找到 startEvent');
+		throw new Error('BF_MISSING_START_EVENT: Process definition must contain a startEvent');
 	}
 
 	private async checkCompletion(

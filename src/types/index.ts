@@ -1,4 +1,4 @@
-import type { ProcessState } from '../state/WorkflowState.js';
+import type { ProcessState } from '../state/ProcessState.js';
 
 export type ElementType =
 	| 'bpmn:startEvent'
@@ -32,6 +32,7 @@ export interface Element {
 	outgoing: string[];
 	properties: Record<string, any>;
 	variables?: VariableDefinition[];
+	childElements?: Record<string, any[]>;
 }
 
 export interface SequenceFlow {

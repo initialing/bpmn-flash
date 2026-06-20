@@ -70,7 +70,7 @@ export function evaluateExpressionResult(
 		// 提取内部内容作为完整表达式进行求值（支持 ${amount > 500} 这种写法）
 		const singleWrapMatch = innerExpression.match(/^(\$\{|#\{)([^}]+)\}$/);
 		if (singleWrapMatch) {
-			const innerContent = singleWrapMatch[2].trim();
+			const innerContent = singleWrapMatch[2]!.trim();
 			// 如果内部包含运算符，作为完整表达式求值
 			if (/[><=!&|+\-*/]/.test(innerContent)) {
 				// 替换内部表达式中的变量引用为实际值
@@ -168,6 +168,27 @@ function evaluateSimpleExpression(
 ): any {
 	// 移除多余的空白字符
 	expr = expr.trim();
+
+	// 剥离外层匹配的括号，将(...)内的表达式作为整体计算
+	while (expr.startsWith('(') && expr.endsWith(')')) {
+		// 确认左右括号是匹配的顶层括号
+		let depth = 0;
+		let matched = true;
+		for (let i = 0; i < expr.length; i++) {
+			if (expr[i] === '(') depth++;
+			if (expr[i] === ')') depth--;
+			// 如果在到达末尾前 depth 归零，说明不是包裹整个表达式的括号
+			if (depth === 0 && i < expr.length - 1) {
+				matched = false;
+				break;
+			}
+		}
+		if (matched && depth === 0) {
+			expr = expr.slice(1, -1).trim();
+		} else {
+			break;
+		}
+	}
 
 	// 处理逻辑运算符（优先级最低）
 	if (expr.includes('||')) {
@@ -335,16 +356,32 @@ function getValue(expr: string, context: Record<string, any>): any {
 
 	// 从上下文中获取变量值
 	// 支持点号表示法，例如：user.age
+	// 支持中括号表示法，例如：actions['key'] 或 actions["key"]
+	// 支持链式中括号，例如：a['b']['c']
 	const parts = expr.split('.');
 	let value: any = context;
 
 	for (const part of parts) {
-		if (value && typeof value === 'object') {
-			value = value[part];
-		} else {
-			// 如果路径不存在，返回 undefined
+		if (value === null || value === undefined || typeof value !== 'object') {
 			value = undefined;
 			break;
+		}
+
+		if (/\[['"]/.test(part)) {
+			// 包含中括号表示法（如 actions['key'] 或 a['b']['c']）
+			// 用正则依次提取 propName 和 bracketKey
+			const segRegex = /(\w+)|\[(['"])([^'"]*)\2\]/g;
+			let segMatch;
+			while ((segMatch = segRegex.exec(part)) !== null) {
+				const key: string = segMatch[1] ?? segMatch[3] ?? '';
+				if (value === null || value === undefined || typeof value !== 'object') {
+					value = undefined;
+					break;
+				}
+				value = value[key];
+			}
+		} else {
+			value = value[part];
 		}
 	}
 

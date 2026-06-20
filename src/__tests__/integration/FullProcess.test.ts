@@ -1,6 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WorkflowEngine } from '../../core/WorkflowEngine.js';
-import type { EngineHooks, NodeContext, FlowContext } from '../../types/index.js';
+/**
+ * 完整流程集成测试（v3 FlowEngine）
+ * 涵盖审批、并行、复杂流程等真实场景
+ */
+import { describe, it, expect, vi } from 'vitest';
+import { FlowEngine } from '../../engine/FlowEngine.js';
+import type { NodeHookContext, FlowHookContext } from '../../hooks/types.js';
 
 // ==================== BPMN XML 模板 ====================
 
@@ -90,9 +94,9 @@ const PARALLEL_APPROVAL_XML = `<?xml version="1.0" encoding="UTF-8"?>
 
 /**
  * 复杂流程:
- * Start → Task1(userTask, pause) → 排他网关 →
- *   [分支A: amount > 1000] Task2(userTask, pause) → End
- *   [分支B: default] Task3(userTask, pause) → End
+ * Start → Task1(userTask, suspend) → 排他网关 →
+ *   [分支A: amount > 1000] Task2(userTask, suspend) → End
+ *   [分支B: default] Task3(userTask, suspend) → End
  */
 const COMPLEX_PROCESS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1">
@@ -136,291 +140,205 @@ const COMPLEX_PROCESS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 
 describe('FullProcess — 集成测试', () => {
 
-  /** 通用钩子：只 pause userTask */
-  function createUserTaskPauseHooks(): EngineHooks {
-    return {
-      onNodeEnter: vi.fn((ctx: NodeContext) => {
-        if (ctx.element.type === 'bpmn:userTask') {
-          ctx.pause();
-        }
-      }),
-      onNodeComplete: vi.fn(),
-      onFlowPass: vi.fn(),
-    };
-  }
-
   describe('审批流程 — 高金额走经理审批', () => {
-    it('Start → 提交申请(pause) → resume → 排他网关(amount>500) → 经理审批(pause) → resume → End', async () => {
-      const hooks = createUserTaskPauseHooks();
-      const engine = new WorkflowEngine(hooks);
+    it('Start → 提交申请(suspend) → resume → 排他网关(amount>500) → 经理审批(suspend) → resume → End', async () => {
+      const engine = new FlowEngine({
+        onNodeEnter: (ctx) => {
+          if (ctx.node.type === 'bpmn:userTask') ctx.suspend();
+        },
+      });
 
       // 1. 启动流程，初始金额 1000
       let state = await engine.startProcess(APPROVAL_PROCESS_XML, { amount: 1000 });
 
-      // 2. 应该在"提交申请"处 pause
-      let waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(1);
-      expect(waitingItems[0]!.elementId).toBe('SubmitTask');
+      // 2. 应该在"提交申请"处 suspend
+      let suspended = engine.getSuspendedTokens(state, APPROVAL_PROCESS_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('SubmitTask');
       expect(state.status).not.toBe('completed');
 
       // 3. resume 提交申请
-      state = await engine.resume(
-        state,
-        waitingItems[0]!.id,
-        { submitter: '张三' },
-        APPROVAL_PROCESS_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, APPROVAL_PROCESS_XML);
 
       // 4. 网关判断 amount=1000 > 500 → 经理审批
-      waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(1);
-      expect(waitingItems[0]!.elementId).toBe('ManagerApproval');
+      suspended = engine.getSuspendedTokens(state, APPROVAL_PROCESS_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('ManagerApproval');
 
       // 5. resume 经理审批
-      state = await engine.resume(
-        state,
-        waitingItems[0]!.id,
-        { approved: true, approver: '李经理' },
-        APPROVAL_PROCESS_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, APPROVAL_PROCESS_XML);
 
       // 6. 流程完成
       expect(state.status).toBe('completed');
       expect(state.tokens).toHaveLength(0);
-      expect(engine.getWaitingItems(state)).toHaveLength(0);
 
-      // 7. 验证数据合并
-      expect(state.data.amount).toBe(1000);
-      expect(state.data.submitter).toBe('张三');
-      expect(state.data.approved).toBe(true);
-      expect(state.data.approver).toBe('李经理');
-
-      // 8. 验证钩子被调用
-      expect(hooks.onNodeEnter).toHaveBeenCalled();
-      expect(hooks.onNodeComplete).toHaveBeenCalled();
-      expect(hooks.onFlowPass).toHaveBeenCalled();
+      // 7. 验证初始变量
+      expect(state.variables.amount).toBe(1000);
     });
   });
 
   describe('审批流程 — 低金额自动通过', () => {
-    it('Start → 提交申请(pause) → resume → 排他网关(amount<=500) → 自动通过 → End', async () => {
-      const hooks = createUserTaskPauseHooks();
-      const engine = new WorkflowEngine(hooks);
+    it('Start → 提交申请(suspend) → resume → 排他网关(amount<=500) → 自动通过 → End', async () => {
+      const engine = new FlowEngine({
+        onNodeEnter: (ctx) => {
+          if (ctx.node.type === 'bpmn:userTask') ctx.suspend();
+        },
+      });
 
       // 1. 启动流程，初始金额 200
       let state = await engine.startProcess(APPROVAL_PROCESS_XML, { amount: 200 });
 
-      // 2. 应该在"提交申请"处 pause
-      let waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(1);
-      expect(waitingItems[0]!.elementId).toBe('SubmitTask');
+      // 2. 应该在"提交申请"处 suspend
+      let suspended = engine.getSuspendedTokens(state, APPROVAL_PROCESS_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('SubmitTask');
 
       // 3. resume 提交申请
-      state = await engine.resume(
-        state,
-        waitingItems[0]!.id,
-        { submitter: '王五' },
-        APPROVAL_PROCESS_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, APPROVAL_PROCESS_XML);
 
-      // 4. 网关判断 amount=200 <= 500 → 自动通过（task 类型，不 pause）
-      // 自动通过节点不是 userTask，不会 pause，直接走到 End
+      // 4. 网关判断 amount=200 <= 500 → 自动通过（task 类型，不 suspend）
+      // 自动通过节点不是 userTask，不会 suspend，直接走到 End
       expect(state.status).toBe('completed');
       expect(state.tokens).toHaveLength(0);
     });
   });
 
   describe('并行审批', () => {
-    it('Start → 并行分裂 → 审批A(pause) + 审批B(pause) → 依次 resume → 并行汇聚 → End', async () => {
-      const hooks = createUserTaskPauseHooks();
-      const engine = new WorkflowEngine(hooks);
+    it('Start → 并行分裂 → 审批A(suspend) + 审批B(suspend) → 依次 resume → 并行汇聚 → End', async () => {
+      const engine = new FlowEngine({
+        onNodeEnter: (ctx) => {
+          if (ctx.node.type === 'bpmn:userTask') ctx.suspend();
+        },
+      });
 
       // 1. 启动流程
       let state = await engine.startProcess(PARALLEL_APPROVAL_XML);
 
-      // 2. 并行分裂后，两个审批任务都应该 pause
-      let waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(2);
+      // 2. 并行分裂后，两个审批任务都应该 suspend
+      let suspended = engine.getSuspendedTokens(state, PARALLEL_APPROVAL_XML);
+      expect(suspended).toHaveLength(2);
 
-      const elementIds = waitingItems.map((item) => item.elementId).sort();
-      expect(elementIds).toEqual(['ApprovalA', 'ApprovalB']);
+      const nodeIds = suspended.map((t) => t.nodeId).sort();
+      expect(nodeIds).toEqual(['ApprovalA', 'ApprovalB']);
       expect(state.status).not.toBe('completed');
 
       // 3. resume 审批A
-      const approvalAItem = waitingItems.find((item) => item.elementId === 'ApprovalA');
-      state = await engine.resume(
-        state,
-        approvalAItem!.id,
-        { approvalA: 'approved' },
-        PARALLEL_APPROVAL_XML
-      );
+      const approvalA = suspended.find((t) => t.nodeId === 'ApprovalA');
+      state = await engine.resume(state, approvalA!.tokenId, PARALLEL_APPROVAL_XML);
 
-      // 4. 审批A 完成后，审批B 仍在等待，流程不应完成
-      waitingItems = engine.getWaitingItems(state);
-      const approvalBItem = waitingItems.find((item) => item.elementId === 'ApprovalB');
-      expect(approvalBItem).toBeDefined();
+      // 4. 审批A 完成后，审批B 仍在等待
+      suspended = engine.getSuspendedTokens(state, PARALLEL_APPROVAL_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('ApprovalB');
       expect(state.status).not.toBe('completed');
 
       // 5. resume 审批B
-      state = await engine.resume(
-        state,
-        approvalBItem!.id,
-        { approvalB: 'approved' },
-        PARALLEL_APPROVAL_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, PARALLEL_APPROVAL_XML);
 
       // 6. 两个都完成 → 汇聚 → EndEvent → 流程完成
       expect(state.status).toBe('completed');
       expect(state.tokens).toHaveLength(0);
-      expect(engine.getWaitingItems(state)).toHaveLength(0);
-
-      // 7. 验证数据
-      expect(state.data.approvalA).toBe('approved');
-      expect(state.data.approvalB).toBe('approved');
     });
 
     it('并行审批 — 先 resume B 再 resume A，顺序无关', async () => {
-      const hooks = createUserTaskPauseHooks();
-      const engine = new WorkflowEngine(hooks);
+      const engine = new FlowEngine({
+        onNodeEnter: (ctx) => {
+          if (ctx.node.type === 'bpmn:userTask') ctx.suspend();
+        },
+      });
 
       let state = await engine.startProcess(PARALLEL_APPROVAL_XML);
 
-      let waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(2);
+      let suspended = engine.getSuspendedTokens(state, PARALLEL_APPROVAL_XML);
+      expect(suspended).toHaveLength(2);
 
       // 先 resume B
-      const approvalBItem = waitingItems.find((item) => item.elementId === 'ApprovalB');
-      state = await engine.resume(
-        state,
-        approvalBItem!.id,
-        { approvalB: 'rejected' },
-        PARALLEL_APPROVAL_XML
-      );
+      const approvalB = suspended.find((t) => t.nodeId === 'ApprovalB');
+      state = await engine.resume(state, approvalB!.tokenId, PARALLEL_APPROVAL_XML);
 
       // A 仍在等待
-      waitingItems = engine.getWaitingItems(state);
-      const approvalAItem = waitingItems.find((item) => item.elementId === 'ApprovalA');
-      expect(approvalAItem).toBeDefined();
+      suspended = engine.getSuspendedTokens(state, PARALLEL_APPROVAL_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('ApprovalA');
 
       // resume A
-      state = await engine.resume(
-        state,
-        approvalAItem!.id,
-        { approvalA: 'approved' },
-        PARALLEL_APPROVAL_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, PARALLEL_APPROVAL_XML);
 
       expect(state.status).toBe('completed');
     });
   });
 
   describe('复杂流程', () => {
-    it('Start → Task1(pause) → resume → 排他网关(amount>1000) → Task2(pause) → resume → End', async () => {
-      const hooks = createUserTaskPauseHooks();
-      const engine = new WorkflowEngine(hooks);
+    it('Start → Task1(suspend) → resume → 排他网关(amount>1000) → Task2(suspend) → resume → End', async () => {
+      const engine = new FlowEngine({
+        onNodeEnter: (ctx) => {
+          if (ctx.node.type === 'bpmn:userTask') ctx.suspend();
+        },
+      });
 
       // 1. 启动，金额 2000
       let state = await engine.startProcess(COMPLEX_PROCESS_XML, { amount: 2000 });
 
-      // 2. Task1 pause
-      let waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(1);
-      expect(waitingItems[0]!.elementId).toBe('Task1');
+      // 2. Task1 suspend
+      let suspended = engine.getSuspendedTokens(state, COMPLEX_PROCESS_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('Task1');
 
       // 3. resume Task1
-      state = await engine.resume(
-        state,
-        waitingItems[0]!.id,
-        { reviewResult: 'pass' },
-        COMPLEX_PROCESS_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, COMPLEX_PROCESS_XML);
 
       // 4. 网关判断 amount=2000 > 1000 → Task2（高额审批）
-      waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(1);
-      expect(waitingItems[0]!.elementId).toBe('Task2');
+      suspended = engine.getSuspendedTokens(state, COMPLEX_PROCESS_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('Task2');
 
       // 5. resume Task2
-      state = await engine.resume(
-        state,
-        waitingItems[0]!.id,
-        { finalApproval: true },
-        COMPLEX_PROCESS_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, COMPLEX_PROCESS_XML);
 
       // 6. 完成
       expect(state.status).toBe('completed');
-      expect(state.data.amount).toBe(2000);
-      expect(state.data.reviewResult).toBe('pass');
-      expect(state.data.finalApproval).toBe(true);
+      expect(state.variables.amount).toBe(2000);
     });
 
-    it('Start → Task1(pause) → resume → 排他网关(amount<=1000) → Task3(pause) → resume → End', async () => {
-      const hooks = createUserTaskPauseHooks();
-      const engine = new WorkflowEngine(hooks);
+    it('Start → Task1(suspend) → resume → 排他网关(amount<=1000) → Task3(suspend) → resume → End', async () => {
+      const engine = new FlowEngine({
+        onNodeEnter: (ctx) => {
+          if (ctx.node.type === 'bpmn:userTask') ctx.suspend();
+        },
+      });
 
       // 1. 启动，金额 500
       let state = await engine.startProcess(COMPLEX_PROCESS_XML, { amount: 500 });
 
-      // 2. Task1 pause
-      let waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(1);
-      expect(waitingItems[0]!.elementId).toBe('Task1');
+      // 2. Task1 suspend
+      let suspended = engine.getSuspendedTokens(state, COMPLEX_PROCESS_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('Task1');
 
       // 3. resume Task1
-      state = await engine.resume(
-        state,
-        waitingItems[0]!.id,
-        { reviewResult: 'pass' },
-        COMPLEX_PROCESS_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, COMPLEX_PROCESS_XML);
 
       // 4. 网关判断 amount=500 <= 1000 → Task3（普通审批，默认分支）
-      waitingItems = engine.getWaitingItems(state);
-      expect(waitingItems).toHaveLength(1);
-      expect(waitingItems[0]!.elementId).toBe('Task3');
+      suspended = engine.getSuspendedTokens(state, COMPLEX_PROCESS_XML);
+      expect(suspended).toHaveLength(1);
+      expect(suspended[0]!.nodeId).toBe('Task3');
 
       // 5. resume Task3
-      state = await engine.resume(
-        state,
-        waitingItems[0]!.id,
-        { normalApproval: true },
-        COMPLEX_PROCESS_XML
-      );
+      state = await engine.resume(state, suspended[0]!.tokenId, COMPLEX_PROCESS_XML);
 
       // 6. 完成
       expect(state.status).toBe('completed');
-      expect(state.data.amount).toBe(500);
-      expect(state.data.normalApproval).toBe(true);
+      expect(state.variables.amount).toBe(500);
     });
   });
 
   describe('端到端钩子验证', () => {
     it('完整流程中钩子调用的完整性', async () => {
       const enterLog: string[] = [];
-      const completeLog: string[] = [];
+      const leaveLog: string[] = [];
       const flowLog: string[] = [];
 
-      const hooks: EngineHooks = {
-        onNodeEnter: vi.fn((ctx: NodeContext) => {
-          enterLog.push(ctx.element.id);
-          if (ctx.element.type === 'bpmn:userTask') {
-            ctx.pause();
-          }
-        }),
-        onNodeComplete: vi.fn((ctx: NodeContext) => {
-          completeLog.push(ctx.element.id);
-        }),
-        onFlowPass: vi.fn((ctx: FlowContext) => {
-          flowLog.push(`${ctx.sourceElement.id}->${ctx.targetElement.id}`);
-        }),
-      };
-
-      const engine = new WorkflowEngine(hooks);
-
-      // 简单的 Start → UserTask → End
-      let state = await engine.startProcess(
-        `<?xml version="1.0" encoding="UTF-8"?>
+      const HOOK_TEST_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1">
   <bpmn:process id="hook-test-process" name="钩子测试流程" isExecutable="true">
     <bpmn:startEvent id="Start">
@@ -436,41 +354,38 @@ describe('FullProcess — 集成测试', () => {
     <bpmn:sequenceFlow id="F1" sourceRef="Start" targetRef="Task" />
     <bpmn:sequenceFlow id="F2" sourceRef="Task" targetRef="End" />
   </bpmn:process>
-</bpmn:definitions>`
-      );
+</bpmn:definitions>`;
 
-      // start 阶段的钩子记录
+      const engine = new FlowEngine({
+        onNodeEnter: (ctx) => {
+          enterLog.push(ctx.node.id);
+          if (ctx.node.type === 'bpmn:userTask') ctx.suspend();
+        },
+        onNodeLeave: (ctx) => {
+          leaveLog.push(ctx.node.id);
+        },
+        onSequenceFlow: (ctx) => {
+          flowLog.push(`${ctx.sourceNode.id}->${ctx.targetNode.id}`);
+        },
+      });
+
+      // --- start 阶段 ---
+      let state = await engine.startProcess(HOOK_TEST_XML);
+
+      // start 阶段的钩子
       expect(enterLog).toContain('Start');
       expect(enterLog).toContain('Task');
       expect(flowLog).toContain('Start->Task');
 
-      // resume
-      const items = engine.getWaitingItems(state);
-      state = await engine.resume(
-        state,
-        items[0]!.id,
-        {},
-        `<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1">
-  <bpmn:process id="hook-test-process" name="钩子测试流程" isExecutable="true">
-    <bpmn:startEvent id="Start">
-      <bpmn:outgoing>F1</bpmn:outgoing>
-    </bpmn:startEvent>
-    <bpmn:userTask id="Task" name="任务">
-      <bpmn:incoming>F1</bpmn:incoming>
-      <bpmn:outgoing>F2</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:endEvent id="End">
-      <bpmn:incoming>F2</bpmn:incoming>
-    </bpmn:endEvent>
-    <bpmn:sequenceFlow id="F1" sourceRef="Start" targetRef="Task" />
-    <bpmn:sequenceFlow id="F2" sourceRef="Task" targetRef="End" />
-  </bpmn:process>
-</bpmn:definitions>`
-      );
+      // Task onNodeLeave 不应该在 suspend 时触发
+      expect(leaveLog).not.toContain('Task');
+
+      // --- resume ---
+      const tokenId = state.tokens[0]!.id;
+      state = await engine.resume(state, tokenId, HOOK_TEST_XML);
 
       // resume 后的钩子
-      expect(completeLog).toContain('Task');
+      expect(leaveLog).toContain('Task');
       expect(flowLog).toContain('Task->End');
       expect(enterLog).toContain('End');
       expect(state.status).toBe('completed');

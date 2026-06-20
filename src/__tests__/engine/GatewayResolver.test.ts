@@ -433,5 +433,42 @@ describe('GatewayResolver', () => {
       expect(newState.tokens).toHaveLength(1);
       expect(newState.tokens[0].elementId).toBe('taskC');
     });
+
+  it('汇聚模式：包含网关等待所有入边令牌到达', () => {
+    const gateway: Element = {
+      id: 'ijoin',
+      type: 'bpmn:inclusiveGateway',
+      name: '包含汇聚',
+      incoming: ['fA', 'fB'],
+      outgoing: ['fOut'],
+      properties: {},
+    };
+    const flows: SequenceFlow[] = [
+      { id: 'fA', sourceRef: 'taskA', targetRef: 'ijoin', conditionExpression: null },
+      { id: 'fB', sourceRef: 'taskB', targetRef: 'ijoin', conditionExpression: null },
+      { id: 'fOut', sourceRef: 'ijoin', targetRef: 'end', conditionExpression: null },
+    ];
+    const definition = buildDefinition(
+      [gateway,
+       { id: 'end', type: 'bpmn:endEvent', name: '结束', incoming: ['fOut'], outgoing: [], properties: {} }],
+      flows
+    );
+
+    const token1 = createToken('ijoin');
+    let state = createState({ tokens: [token1], _gatewayWait: {} });
+
+    // 第一个令牌到达，应该等待（第二个还没到）
+    const afterFirst = resolver.resolve(state, token1 as any, gateway, definition as any);
+    expect(afterFirst._gatewayWait['ijoin']).toBeTruthy();
+    expect(afterFirst._gatewayWait['ijoin']).toHaveLength(1);
+    expect(afterFirst.tokens).toHaveLength(0);
+
+    // 第二个令牌到达，应该放行
+    const token2 = createToken('ijoin');
+    const afterSecond = resolver.resolve(afterFirst, token2 as any, gateway, definition as any);
+    expect(afterSecond._gatewayWait['ijoin']).toBeUndefined();
+    expect(afterSecond.tokens).toHaveLength(1);
+    expect(afterSecond.tokens[0].elementId).toBe('end');
   });
+});
 });
