@@ -5,7 +5,12 @@
  */
 
 import type { ProcessState } from '../state/ProcessState.js';
-import type { TokenV3 as Token, Element, ProcessDefinition, TraceEntry } from '../types/index.js';
+import type {
+	TokenV3 as Token,
+	Element,
+	ProcessDefinition,
+	TraceEntry,
+} from '../types/index.js';
 import { TokenManager } from './TokenManager.js';
 import { HookManager } from '../hooks/HookManager.js';
 
@@ -68,7 +73,11 @@ export class FlowTraverser {
 			state = { ...state, trace: [...state.trace, traceEntry] };
 
 			// 在目标节点创建新令牌
-			state = this.tokenManager.createToken(state, flow.targetRef, token.data);
+			state = this.tokenManager.createToken(
+				state,
+				flow.targetRef,
+				token.data
+			);
 		}
 
 		return state;

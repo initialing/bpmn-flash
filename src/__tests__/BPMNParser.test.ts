@@ -91,7 +91,7 @@ describe('BPMNParser', () => {
 			let capturedProperties: Record<string, any> | undefined;
 
 			const engine = new FlowEngine({
-				onNodeEnter: (ctx) => {
+				onNodeEnter: ctx => {
 					if (ctx.node.properties.cc) {
 						capturedCc = ctx.node.properties.cc;
 						capturedProperties = { ...ctx.node.properties };
@@ -441,7 +441,9 @@ describe('BPMNParser', () => {
 			const approve = result.elements.get('approve');
 			expect(approve).toBeDefined();
 			expect(approve!.childElements!['bpmn:documentation']).toBeDefined();
-			expect(approve!.childElements!['bpmn:documentation'][0]!).toBe('需要审批');
+			expect(approve!.childElements!['bpmn:documentation'][0]!).toBe(
+				'需要审批'
+			);
 		});
 
 		test('P-C008: hook 中应能通过 ctx.node.properties 访问子标签数据', async () => {
@@ -451,7 +453,7 @@ describe('BPMNParser', () => {
 			let capturedExt: any;
 
 			const engine = new FlowEngine({
-				onNodeEnter: (ctx) => {
+				onNodeEnter: ctx => {
 					if (ctx.node.childElements?.['bpmn:documentation']) {
 						capturedDoc =
 							ctx.node.childElements['bpmn:documentation'];
@@ -488,9 +490,9 @@ describe('BPMNParser', () => {
 
 			expect(capturedExt).toBeDefined();
 			expect(capturedExt[0]!['activiti:formProperty']).toBeDefined();
-			expect(
-				capturedExt[0]!['activiti:formProperty'][0]!.name
-			).toBe('钩子表单');
+			expect(capturedExt[0]!['activiti:formProperty'][0]!.name).toBe(
+				'钩子表单'
+			);
 		});
 	});
 
@@ -522,7 +524,9 @@ describe('BPMNParser', () => {
 				children['bpmn:extensionElements'][0]!['activiti:formProperty']
 			).toBeDefined();
 			expect(
-				children['bpmn:extensionElements'][0]!['activiti:formProperty'][0]!.id
+				children['bpmn:extensionElements'][0]![
+					'activiti:formProperty'
+				][0]!.id
 			).toBe('form_123');
 
 			expect(children['bpmn:documentation']).toBeDefined();
@@ -548,7 +552,7 @@ describe('BPMNParser', () => {
 			let captured: any;
 
 			const engine = new FlowEngine({
-				onNodeEnter: (ctx) => {
+				onNodeEnter: ctx => {
 					// ctx.node.childElements 已自动包含解析后的下级标签
 					if (ctx.node.id === 'task1') {
 						captured = ctx.node.childElements;
@@ -559,16 +563,10 @@ describe('BPMNParser', () => {
 			await engine.startProcess(xml, {});
 
 			expect(captured).toBeDefined();
-			expect(captured['bpmn:documentation'][0]!).toBe(
-				'审批任务说明'
-			);
+			expect(captured['bpmn:documentation'][0]!).toBe('审批任务说明');
 			expect(captured['bpmn:extensionElements']).toBeDefined();
-			expect(
-				captured['bpmn:incoming']
-			).toBeUndefined();
-			expect(
-				captured['bpmn:outgoing']
-			).toBeUndefined();
+			expect(captured['bpmn:incoming']).toBeUndefined();
+			expect(captured['bpmn:outgoing']).toBeUndefined();
 		});
 	});
 });

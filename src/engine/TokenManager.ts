@@ -9,7 +9,6 @@ import type { TokenV3 as Token } from '../types/index.js';
 import { generateId } from '../state/IdGenerator.js';
 
 export class TokenManager {
-
 	/** 在指定节点创建一个 active 令牌 */
 	createToken(
 		state: ProcessState,
@@ -35,7 +34,11 @@ export class TokenManager {
 			...state,
 			tokens: state.tokens.map(t =>
 				t.id === tokenId
-					? { ...t, status: 'suspended' as const, suspendedAt: new Date() }
+					? {
+							...t,
+							status: 'suspended' as const,
+							suspendedAt: new Date(),
+						}
 					: t
 			),
 		};
@@ -52,11 +55,11 @@ export class TokenManager {
 			tokens: state.tokens.map(t =>
 				t.id === tokenId
 					? {
-						...t,
-						status: 'active' as const,
-						data: data ? { ...t.data, ...data } : t.data,
-						suspendedAt: undefined,
-					}
+							...t,
+							status: 'active' as const,
+							data: data ? { ...t.data, ...data } : t.data,
+							suspendedAt: undefined,
+						}
 					: t
 			),
 		};

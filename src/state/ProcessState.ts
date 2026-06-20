@@ -109,15 +109,21 @@ export function deserialize(json: string): ProcessState {
 		createdAt: new Date(raw.createdAt),
 		startedAt: new Date(raw.startedAt),
 		endedAt: raw.endedAt ? new Date(raw.endedAt) : undefined,
-		tokens: raw.tokens.map((t: RawToken): Token => ({
-			...t,
-			data: t.data,
-			createdAt: new Date(t.createdAt),
-			suspendedAt: t.suspendedAt ? new Date(t.suspendedAt) : undefined,
-		})),
-		trace: raw.trace.map((e: RawTraceEntry): TraceEntry => ({
-			...e,
-			timestamp: new Date(e.timestamp),
-		})),
+		tokens: raw.tokens.map(
+			(t: RawToken): Token => ({
+				...t,
+				data: t.data,
+				createdAt: new Date(t.createdAt),
+				suspendedAt: t.suspendedAt
+					? new Date(t.suspendedAt)
+					: undefined,
+			})
+		),
+		trace: raw.trace.map(
+			(e: RawTraceEntry): TraceEntry => ({
+				...e,
+				timestamp: new Date(e.timestamp),
+			})
+		),
 	};
 }

@@ -53,6 +53,7 @@
 	},
 	"files": [
 		"dist/",
+		"SKILL.md",
 		"!**/*.d.ts.map"
 	],
 	"dependencies": {

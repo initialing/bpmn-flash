@@ -4,8 +4,19 @@
  */
 
 import type { ProcessState } from '../state/ProcessState.js';
-import type { TokenV3 as Token, Element, ProcessDefinition, TraceEntry } from '../types/index.js';
-import type { FlowEngineOptions, NodeHookContext, ScriptExecutorPlugin, HookEvent, HookHandlerMap } from '../hooks/types.js';
+import type {
+	TokenV3 as Token,
+	Element,
+	ProcessDefinition,
+	TraceEntry,
+} from '../types/index.js';
+import type {
+	FlowEngineOptions,
+	NodeHookContext,
+	ScriptExecutorPlugin,
+	HookEvent,
+	HookHandlerMap,
+} from '../hooks/types.js';
 import { TokenManager } from './TokenManager.js';
 import { GatewayResolver } from './GatewayResolver.js';
 import { FlowTraverser } from './FlowTraverser.js';
@@ -146,19 +157,28 @@ export class FlowEngine {
 		const token = state.tokens.find(t => t.id === tokenId);
 		if (!token) throw new Error(`Token ${tokenId} not found`);
 		if (token.status !== 'suspended') {
-			throw new Error(`Token ${tokenId} is not suspended (status: ${token.status})`);
+			throw new Error(
+				`Token ${tokenId} is not suspended (status: ${token.status})`
+			);
 		}
 
 		// 恢复令牌
 		state = this.tokenManager.resumeToken(state, tokenId, data);
 
 		const node = definition.elements.get(token.elementId);
-		if (!node) throw new Error(`Node ${token.elementId} not found in definition`);
+		if (!node)
+			throw new Error(`Node ${token.elementId} not found in definition`);
 
 		const updatedToken = state.tokens.find(t => t.id === tokenId)!;
 
 		// 触发 nodeLeave
-		await this.emitNodeHook('nodeLeave', state, updatedToken, node, definition);
+		await this.emitNodeHook(
+			'nodeLeave',
+			state,
+			updatedToken,
+			node,
+			definition
+		);
 
 		// trace: node-leave
 		state = this.addTrace(state, {
@@ -171,7 +191,12 @@ export class FlowEngine {
 		});
 
 		// 沿出边移动
-		state = await this.flowTraverser.traverse(state, updatedToken, node, definition);
+		state = await this.flowTraverser.traverse(
+			state,
+			updatedToken,
+			node,
+			definition
+		);
 
 		// 继续推进
 		state = await this.advance(state, definition);
@@ -191,7 +216,10 @@ export class FlowEngine {
 	// ==================== 查询 API ====================
 
 	/** 获取所有挂起的令牌信息 */
-	getSuspendedTokens(state: ProcessState, bpmnXML: string): SuspendedTokenInfo[] {
+	getSuspendedTokens(
+		state: ProcessState,
+		bpmnXML: string
+	): SuspendedTokenInfo[] {
 		const definition = BPMNParser.parse(bpmnXML);
 		return state.tokens
 			.filter(t => t.status === 'suspended')
@@ -223,12 +251,18 @@ export class FlowEngine {
 			hasProgress = false;
 			iterations++;
 
-			const activeTokens = state.tokens.filter(t => t.status === 'active');
+			const activeTokens = state.tokens.filter(
+				t => t.status === 'active'
+			);
 			if (activeTokens.length === 0) break;
 
 			for (const token of activeTokens) {
 				// 检查 token 是否还存在且 active
-				if (!state.tokens.some(t => t.id === token.id && t.status === 'active')) {
+				if (
+					!state.tokens.some(
+						t => t.id === token.id && t.status === 'active'
+					)
+				) {
 					continue;
 				}
 
@@ -238,54 +272,119 @@ export class FlowEngine {
 				if (isStartEvent(node.type)) {
 					// StartEvent：自动通过
 					state = this.addTrace(state, {
-						type: 'node-enter', elementId: node.id, elementType: node.type,
-						elementName: node.name, tokenId: token.id, timestamp: new Date(),
+						type: 'node-enter',
+						elementId: node.id,
+						elementType: node.type,
+						elementName: node.name,
+						tokenId: token.id,
+						timestamp: new Date(),
 					});
-					await this.emitNodeHook('nodeEnter', state, token, node, definition);
+					await this.emitNodeHook(
+						'nodeEnter',
+						state,
+						token,
+						node,
+						definition
+					);
 					state = this.addTrace(state, {
-						type: 'node-leave', elementId: node.id, elementType: node.type,
-						elementName: node.name, tokenId: token.id, timestamp: new Date(),
+						type: 'node-leave',
+						elementId: node.id,
+						elementType: node.type,
+						elementName: node.name,
+						tokenId: token.id,
+						timestamp: new Date(),
 					});
-					await this.emitNodeHook('nodeLeave', state, token, node, definition);
-					state = await this.flowTraverser.traverse(state, token, node, definition);
+					await this.emitNodeHook(
+						'nodeLeave',
+						state,
+						token,
+						node,
+						definition
+					);
+					state = await this.flowTraverser.traverse(
+						state,
+						token,
+						node,
+						definition
+					);
 					hasProgress = true;
-
 				} else if (isEndEvent(node.type)) {
 					// EndEvent：销毁令牌
 					state = this.addTrace(state, {
-						type: 'node-enter', elementId: node.id, elementType: node.type,
-						elementName: node.name, tokenId: token.id, timestamp: new Date(),
+						type: 'node-enter',
+						elementId: node.id,
+						elementType: node.type,
+						elementName: node.name,
+						tokenId: token.id,
+						timestamp: new Date(),
 					});
-					await this.emitNodeHook('nodeEnter', state, token, node, definition);
+					await this.emitNodeHook(
+						'nodeEnter',
+						state,
+						token,
+						node,
+						definition
+					);
 					state = this.tokenManager.destroyToken(state, token.id);
 					state = this.addTrace(state, {
-						type: 'node-leave', elementId: node.id, elementType: node.type,
-						elementName: node.name, tokenId: token.id, timestamp: new Date(),
+						type: 'node-leave',
+						elementId: node.id,
+						elementType: node.type,
+						elementName: node.name,
+						tokenId: token.id,
+						timestamp: new Date(),
 					});
-					await this.emitNodeHook('nodeLeave', state, token, node, definition);
+					await this.emitNodeHook(
+						'nodeLeave',
+						state,
+						token,
+						node,
+						definition
+					);
 					hasProgress = true;
-
 				} else if (isGateway(node.type)) {
 					// Gateway：引擎内部处理
 					state = this.addTrace(state, {
-						type: 'node-enter', elementId: node.id, elementType: node.type,
-						elementName: node.name, tokenId: token.id, timestamp: new Date(),
+						type: 'node-enter',
+						elementId: node.id,
+						elementType: node.type,
+						elementName: node.name,
+						tokenId: token.id,
+						timestamp: new Date(),
 					});
-					await this.emitNodeHook('nodeEnter', state, token, node, definition);
+					await this.emitNodeHook(
+						'nodeEnter',
+						state,
+						token,
+						node,
+						definition
+					);
 
-					state = this.gatewayResolver.resolve(state, token, node, definition);
+					state = this.gatewayResolver.resolve(
+						state,
+						token,
+						node,
+						definition
+					);
 
 					state = this.addTrace(state, {
-						type: 'gateway-resolve', elementId: node.id, elementType: node.type,
-						elementName: node.name, tokenId: token.id, timestamp: new Date(),
+						type: 'gateway-resolve',
+						elementId: node.id,
+						elementType: node.type,
+						elementName: node.name,
+						tokenId: token.id,
+						timestamp: new Date(),
 					});
 					hasProgress = true;
-
 				} else {
 					// 普通业务节点（含 scriptTask）：钩子决定一切
 					state = this.addTrace(state, {
-						type: 'node-enter', elementId: node.id, elementType: node.type,
-						elementName: node.name, tokenId: token.id, timestamp: new Date(),
+						type: 'node-enter',
+						elementId: node.id,
+						elementType: node.type,
+						elementName: node.name,
+						tokenId: token.id,
+						timestamp: new Date(),
 					});
 
 					let suspended = false;
@@ -299,22 +398,34 @@ export class FlowEngine {
 						token,
 						node,
 						definition,
-						suspend: () => { suspended = true; },
-						setTokenData: (d) => Object.assign(tokenDataPatch, d),
-						setVariables: (v) => Object.assign(varPatch, v),
-						executeScript: (script: string): Promise<Record<string, any>> => {
+						suspend: () => {
+							suspended = true;
+						},
+						setTokenData: d => Object.assign(tokenDataPatch, d),
+						setVariables: v => Object.assign(varPatch, v),
+						executeScript: (
+							script: string
+						): Promise<Record<string, any>> => {
 							if (!scriptExecutor) {
 								return Promise.reject(
-									new Error('executeScript 不可用：未注册 ScriptExecutorPlugin')
+									new Error(
+										'executeScript 不可用：未注册 ScriptExecutorPlugin'
+									)
 								);
 							}
 							return new Promise((resolve, reject) => {
 								try {
-									scriptExecutor.execute(currentState, script, (error, result) => {
-										if (error) reject(error);
-										else resolve(result || {});
-									});
-								} catch (e) { reject(e); }
+									scriptExecutor.execute(
+										currentState,
+										script,
+										(error, result) => {
+											if (error) reject(error);
+											else resolve(result || {});
+										}
+									);
+								} catch (e) {
+									reject(e);
+								}
 							});
 						},
 					};
@@ -323,10 +434,17 @@ export class FlowEngine {
 
 					// 应用数据变更
 					if (Object.keys(tokenDataPatch).length > 0) {
-						state = this.tokenManager.updateTokenData(state, token.id, tokenDataPatch);
+						state = this.tokenManager.updateTokenData(
+							state,
+							token.id,
+							tokenDataPatch
+						);
 					}
 					if (Object.keys(varPatch).length > 0) {
-						state = { ...state, variables: { ...state.variables, ...varPatch } };
+						state = {
+							...state,
+							variables: { ...state.variables, ...varPatch },
+						};
 					}
 
 					if (suspended) {
@@ -334,14 +452,31 @@ export class FlowEngine {
 					} else {
 						// 自动通过
 						state = this.addTrace(state, {
-							type: 'node-leave', elementId: node.id, elementType: node.type,
-							elementName: node.name, tokenId: token.id, timestamp: new Date(),
+							type: 'node-leave',
+							elementId: node.id,
+							elementType: node.type,
+							elementName: node.name,
+							tokenId: token.id,
+							timestamp: new Date(),
 						});
 
-						const currentToken = state.tokens.find(t => t.id === token.id);
+						const currentToken = state.tokens.find(
+							t => t.id === token.id
+						);
 						if (currentToken) {
-							await this.emitNodeHook('nodeLeave', state, currentToken, node, definition);
-							state = await this.flowTraverser.traverse(state, currentToken, node, definition);
+							await this.emitNodeHook(
+								'nodeLeave',
+								state,
+								currentToken,
+								node,
+								definition
+							);
+							state = await this.flowTraverser.traverse(
+								state,
+								currentToken,
+								node,
+								definition
+							);
 						}
 						hasProgress = true;
 					}
@@ -360,7 +495,9 @@ export class FlowEngine {
 		for (const [, element] of definition.elements) {
 			if (isStartEvent(element.type)) return element;
 		}
-		throw new Error('BF_MISSING_START_EVENT: Process definition must contain a startEvent');
+		throw new Error(
+			'BF_MISSING_START_EVENT: Process definition must contain a startEvent'
+		);
 	}
 
 	private async checkCompletion(
@@ -387,7 +524,10 @@ export class FlowEngine {
 		definition: ProcessDefinition
 	): Promise<void> {
 		await this.hooks.emit(event, {
-			state, token, node, definition,
+			state,
+			token,
+			node,
+			definition,
 			suspend: () => {},
 			setTokenData: () => {},
 			setVariables: () => {},

@@ -54,7 +54,10 @@ export class HookManager {
 				try {
 					await handler(context);
 				} catch (error) {
-					console.error(`[HookManager] ${event} handler error:`, error);
+					console.error(
+						`[HookManager] ${event} handler error:`,
+						error
+					);
 				}
 			}
 		}

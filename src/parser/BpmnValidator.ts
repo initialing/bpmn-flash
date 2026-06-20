@@ -36,12 +36,14 @@ export class BpmnValidator {
 		);
 		if (startEvents.length === 0) {
 			errors.push({
-				message: 'Process definition must contain at least one startEvent',
+				message:
+					'Process definition must contain at least one startEvent',
 				code: 'MISSING_START_EVENT',
 			});
 		} else if (startEvents.length > 1) {
 			errors.push({
-				message: 'Process definition must contain exactly one startEvent',
+				message:
+					'Process definition must contain exactly one startEvent',
 				code: 'MULTIPLE_START_EVENTS',
 			});
 		}
@@ -53,7 +55,8 @@ export class BpmnValidator {
 		);
 		if (endEvents.length === 0) {
 			errors.push({
-				message: 'Process definition must contain at least one endEvent',
+				message:
+					'Process definition must contain at least one endEvent',
 				code: 'MISSING_END_EVENT',
 			});
 		}
@@ -214,7 +217,8 @@ export class BpmnValidator {
 		for (const startEvent of startEvents) {
 			if (hasCycle(startEvent.id)) {
 				errors.push({
-					message: 'Cyclic flow dependency detected in process definition',
+					message:
+						'Cyclic flow dependency detected in process definition',
 					code: 'CYCLIC_FLOW_DETECTED',
 				});
 				break; // 发现一个循环就足够了

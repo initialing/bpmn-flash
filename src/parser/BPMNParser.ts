@@ -111,7 +111,6 @@ class BPMNParser {
 		}
 	}
 
-	
 	static parseElements(xml: string): Map<string, Element> {
 		const elements = new Map<string, Element>();
 		const elementTypes: { [key: string]: ElementType } = {
@@ -159,9 +158,14 @@ class BPMNParser {
 
 					// 对非自闭合标签，提取标签体内部的子元素并解析
 					if (!isSelfClosing) {
-						const tagContent = this.extractTagContent(xml, type, match.index);
+						const tagContent = this.extractTagContent(
+							xml,
+							type,
+							match.index
+						);
 						if (tagContent) {
-							element.childElements = this.parseChildContent(tagContent);
+							element.childElements =
+								this.parseChildContent(tagContent);
 						}
 					}
 
@@ -284,7 +288,11 @@ class BPMNParser {
 			}
 
 			// 无属性且纯文本：直接用文本值
-			if (!hasAttributes && innerContent && Object.keys(obj).length === 0) {
+			if (
+				!hasAttributes &&
+				innerContent &&
+				Object.keys(obj).length === 0
+			) {
 				result[tagName].push(innerContent);
 			} else {
 				result[tagName].push(obj);
@@ -313,10 +321,7 @@ class BPMNParser {
 		xml: string,
 		elementId: string
 	): Record<string, any[]> {
-		const escapedId = elementId.replace(
-			/[.*+?^${}()|[\]\\]/g,
-			'\\$&'
-		);
+		const escapedId = elementId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 		const idAttr = new RegExp(`\\sid="${escapedId}"`);
 
 		let searchPos = 0;
