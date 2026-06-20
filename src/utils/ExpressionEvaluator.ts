@@ -362,7 +362,11 @@ function getValue(expr: string, context: Record<string, any>): any {
 	let value: any = context;
 
 	for (const part of parts) {
-		if (value === null || value === undefined || typeof value !== 'object') {
+		if (
+			value === null ||
+			value === undefined ||
+			typeof value !== 'object'
+		) {
 			value = undefined;
 			break;
 		}
@@ -374,7 +378,11 @@ function getValue(expr: string, context: Record<string, any>): any {
 			let segMatch;
 			while ((segMatch = segRegex.exec(part)) !== null) {
 				const key: string = segMatch[1] ?? segMatch[3] ?? '';
-				if (value === null || value === undefined || typeof value !== 'object') {
+				if (
+					value === null ||
+					value === undefined ||
+					typeof value !== 'object'
+				) {
 					value = undefined;
 					break;
 				}

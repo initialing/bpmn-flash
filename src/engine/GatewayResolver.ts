@@ -5,7 +5,11 @@
  */
 
 import type { ProcessState } from '../state/ProcessState.js';
-import type { TokenV3 as Token, Element, ProcessDefinition } from '../types/index.js';
+import type {
+	TokenV3 as Token,
+	Element,
+	ProcessDefinition,
+} from '../types/index.js';
 import { TokenManager } from './TokenManager.js';
 import { evaluateExpression } from '../utils/ExpressionEvaluator.js';
 
@@ -24,14 +28,14 @@ export class GatewayResolver {
 		definition: ProcessDefinition
 	): ProcessState {
 		switch (gateway.type) {
-		case 'bpmn:exclusiveGateway':
-			return this.resolveExclusive(state, token, gateway, definition);
-		case 'bpmn:parallelGateway':
-			return this.resolveParallel(state, token, gateway, definition);
-		case 'bpmn:inclusiveGateway':
-			return this.resolveInclusive(state, token, gateway, definition);
-		default:
-			return this.passThrough(state, token, gateway, definition);
+			case 'bpmn:exclusiveGateway':
+				return this.resolveExclusive(state, token, gateway, definition);
+			case 'bpmn:parallelGateway':
+				return this.resolveParallel(state, token, gateway, definition);
+			case 'bpmn:inclusiveGateway':
+				return this.resolveInclusive(state, token, gateway, definition);
+			default:
+				return this.passThrough(state, token, gateway, definition);
 		}
 	}
 
@@ -56,10 +60,18 @@ export class GatewayResolver {
 			if (!flow) continue;
 
 			if (!flow.conditionExpression) {
-				return this.tokenManager.createToken(state, flow.targetRef, token.data);
+				return this.tokenManager.createToken(
+					state,
+					flow.targetRef,
+					token.data
+				);
 			}
 			if (evaluateExpression(flow.conditionExpression, context)) {
-				return this.tokenManager.createToken(state, flow.targetRef, token.data);
+				return this.tokenManager.createToken(
+					state,
+					flow.targetRef,
+					token.data
+				);
 			}
 		}
 
@@ -67,7 +79,11 @@ export class GatewayResolver {
 		if (defaultFlowId) {
 			const defaultFlow = definition.sequenceFlows.get(defaultFlowId);
 			if (defaultFlow) {
-				return this.tokenManager.createToken(state, defaultFlow.targetRef, token.data);
+				return this.tokenManager.createToken(
+					state,
+					defaultFlow.targetRef,
+					token.data
+				);
 			}
 		}
 
@@ -75,11 +91,17 @@ export class GatewayResolver {
 		if (outgoing.length === 1) {
 			const flow = definition.sequenceFlows.get(outgoing[0]!);
 			if (flow) {
-				return this.tokenManager.createToken(state, flow.targetRef, token.data);
+				return this.tokenManager.createToken(
+					state,
+					flow.targetRef,
+					token.data
+				);
 			}
 		}
 
-		throw new Error(`BF_GATEWAY_NO_MATCH: Exclusive gateway ${gateway.id} has no satisfied condition and no default flow`);
+		throw new Error(
+			`BF_GATEWAY_NO_MATCH: Exclusive gateway ${gateway.id} has no satisfied condition and no default flow`
+		);
 	}
 
 	/** 并行网关：分裂或汇聚 */
@@ -98,7 +120,11 @@ export class GatewayResolver {
 			for (const flowId of outgoing) {
 				const flow = definition.sequenceFlows.get(flowId);
 				if (flow) {
-					state = this.tokenManager.createToken(state, flow.targetRef, token.data);
+					state = this.tokenManager.createToken(
+						state,
+						flow.targetRef,
+						token.data
+					);
 				}
 			}
 			return state;
@@ -120,7 +146,11 @@ export class GatewayResolver {
 			for (const flowId of outgoing) {
 				const flow = definition.sequenceFlows.get(flowId);
 				if (flow) {
-					state = this.tokenManager.createToken(state, flow.targetRef, token.data);
+					state = this.tokenManager.createToken(
+						state,
+						flow.targetRef,
+						token.data
+					);
 				}
 			}
 		}
@@ -151,9 +181,15 @@ export class GatewayResolver {
 				const flow = definition.sequenceFlows.get(flowId);
 				if (!flow) continue;
 
-				if (!flow.conditionExpression ||
-					evaluateExpression(flow.conditionExpression, context)) {
-					state = this.tokenManager.createToken(state, flow.targetRef, token.data);
+				if (
+					!flow.conditionExpression ||
+					evaluateExpression(flow.conditionExpression, context)
+				) {
+					state = this.tokenManager.createToken(
+						state,
+						flow.targetRef,
+						token.data
+					);
 					anySelected = true;
 				}
 			}
@@ -161,7 +197,11 @@ export class GatewayResolver {
 			if (!anySelected && defaultFlowId) {
 				const defaultFlow = definition.sequenceFlows.get(defaultFlowId);
 				if (defaultFlow) {
-					state = this.tokenManager.createToken(state, defaultFlow.targetRef, token.data);
+					state = this.tokenManager.createToken(
+						state,
+						defaultFlow.targetRef,
+						token.data
+					);
 				}
 			}
 
@@ -184,7 +224,11 @@ export class GatewayResolver {
 		for (const flowId of outgoing) {
 			const flow = definition.sequenceFlows.get(flowId);
 			if (flow) {
-				state = this.tokenManager.createToken(state, flow.targetRef, token.data);
+				state = this.tokenManager.createToken(
+					state,
+					flow.targetRef,
+					token.data
+				);
 			}
 		}
 		return state;

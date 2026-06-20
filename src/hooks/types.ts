@@ -4,7 +4,12 @@
  */
 
 import type { ProcessState } from '../state/ProcessState.js';
-import type { TokenV3 as Token, Element, SequenceFlow, ProcessDefinition } from '../types/index.js';
+import type {
+	TokenV3 as Token,
+	Element,
+	SequenceFlow,
+	ProcessDefinition,
+} from '../types/index.js';
 
 // ============================================================
 // 节点钩子上下文（onNodeEnter / onNodeLeave）
@@ -80,7 +85,12 @@ export interface FlowEngineOptions {
 // 钩子事件类型
 // ============================================================
 
-export type HookEvent = 'nodeEnter' | 'nodeLeave' | 'sequenceFlow' | 'processStart' | 'processEnd';
+export type HookEvent =
+	| 'nodeEnter'
+	| 'nodeLeave'
+	| 'sequenceFlow'
+	| 'processStart'
+	| 'processEnd';
 
 export interface HookHandlerMap {
 	nodeEnter: (ctx: NodeHookContext) => void | Promise<void>;
