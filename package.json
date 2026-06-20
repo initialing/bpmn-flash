@@ -2,6 +2,14 @@
 	"name": "bpmn-flash",
 	"version": "1.0.0",
 	"description": "A lightweight and fast BPMN 2.0 engine implementation for JavaScript and TypeScript",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/initialing/bpmn-flash.git"
+	},
+	"bugs": {
+		"url": "https://github.com/initialing/bpmn-flash/issues"
+	},
+	"homepage": "https://github.com/initialing/bpmn-flash#readme",
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
