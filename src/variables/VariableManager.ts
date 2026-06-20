@@ -5,7 +5,7 @@
 
 import { ExpressionContext, EvaluationResult } from '../types/index.js';
 import { VariableEvaluationError } from '../errors/WorkflowErrors.js';
-import { evaluateExpression } from '../utils/ExpressionEvaluator.js';
+import { evaluateExpressionResult } from '../utils/ExpressionEvaluator.js';
 
 /**
  * 变量管理器
@@ -77,11 +77,12 @@ export class VariableManager {
 				: this.variables;
 
 			// 使用安全的表达式求值器（替代 new Function 和 eval）
-			const result = evaluateExpression(expression, evalContext);
+			const result = evaluateExpressionResult(expression, evalContext);
 
 			return {
-				success: true,
-				value: result,
+				success: result.success,
+				value: result.value,
+				error: result.error,
 			};
 		} catch (error) {
 			return {

@@ -1,6 +1,6 @@
 {
 	"name": "bpmn-flash",
-	"version": "1.0.0",
+	"version": "1.0.0-alpha",
 	"description": "A lightweight and fast BPMN 2.0 engine implementation for JavaScript and TypeScript",
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
@@ -23,7 +23,7 @@
 		"lint:fix": "eslint src/**/*.ts --fix",
 		"format": "prettier --write src/**/*.ts",
 		"format:check": "prettier --check src/**/*.ts",
-		"prepare": "husky install",
+		"prepare": "husky",
 		"pre-commit": "npm run format && npm run lint",
 		"debug": "ts-node debug.ts || tsc --target ES2020 --module commonjs --moduleResolution node debug.ts && node debug.js"
 	},
@@ -52,10 +52,12 @@
 		"vitest": "^1.6.0"
 	},
 	"files": [
-		"dist/"
+		"dist/",
+		"!**/*.d.ts.map"
 	],
 	"dependencies": {
 		"fast-xml-parser": "^5.5.6",
+		"nanoid": "^5.1.14",
 		"zod": "^4.3.6"
 	}
 }

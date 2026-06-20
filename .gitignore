@@ -5,7 +5,10 @@ index.js
 pnpm-lock.yaml
 test.js
 .vscode
+coverage/
 
-# Markdown 文档（仅保留 README.md）
+# Markdown 文档（仅保留 README.md、README.zh-CN.md、SKILL.md）
 *.md
 !README.md
+!README.zh-CN.md
+!SKILL.md
