@@ -1,6 +1,6 @@
 {
 	"name": "bpmn-flash",
-	"version": "1.0.0-alpha",
+	"version": "1.0.0",
 	"description": "A lightweight and fast BPMN 2.0 engine implementation for JavaScript and TypeScript",
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
